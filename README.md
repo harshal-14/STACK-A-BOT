@@ -29,4 +29,11 @@ sudo docker run --net=host --rm -it \
 This will take around 12-15 mins to build. Patience is the key!! Alternatively, pull the docker image from this.(Coming soon)
 
 
+# Style Guide
+
+Google offers a great style guide for python code...
+
+Please use their [docustring](https://google.github.io/styleguide/pyguide.html#383-functions-and-methods) format for commenting functions when possible. 
+
+
     
