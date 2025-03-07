@@ -3,7 +3,7 @@ import typing
 
 """ Perhaps some thought should go into how we check inputs to function to ensure safety. 
     Do we want a class specific to sanatizing inputs?
-    Do we want to make a "one size fits all" method to do this?
+    Do we want to make a "one size fits all" function to do this?
 """
 def input_checker(inputs: list[typing.Any], types: list[list[type]], sizes: list[tuple]=None):
     """Checks inputs to a function to ensure type and size correspondence. 

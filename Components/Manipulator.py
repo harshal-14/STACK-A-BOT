@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from Component import Component
 import numpy as np
-from World_Representations import Pose
+from World.Geometry import Pose
 
 class Manipulator(ABC, Component):
     """ Abstract representation of a robotic manipulator. 

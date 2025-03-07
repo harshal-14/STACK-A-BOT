@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 
+
+# TODO: Make all components singleton classes, and standardize code for retriving singleton instances. 
 class Component(ABC):
     """ A generic non-interface specific entity that exists in the program. 
         A standardized set of routines need to be defined in the concrete impl of a comp.
@@ -24,8 +26,8 @@ class Component(ABC):
 
     @abstractmethod
     def connect(self, *args) -> int:
-        """ Establishes connection with component. Method varies by platform (Sim/Hardware) and component type (Camera, Arduino, Sensor, ...) 
-            Method is blocking, implementation should specific a timeout parameter to ensure it does not hang during connection sequence.
+        """ Establishes connection with component. Function varies by platform (Sim/Hardware) and component type (Camera, Arduino, Sensor, ...) 
+            Function is blocking, implementation should specific a timeout parameter to ensure it does not hang during connection sequence.
             Args:
                 args (Any): Implementation specific parameters neccesary for connection.
             Returns:
@@ -34,8 +36,8 @@ class Component(ABC):
         raise NotImplementedError("connect() not implemented by subclass")
 
     def disconnet(self, *args) -> int:
-        """ Disconnects gracefully with component. Method varies by platform (Sim/Hardware) and component type (Camera, Arduino, Sensor, ...) 
-            Method is blocking, implementation should specific a timeout parameter to ensure it does not hang.
+        """ Disconnects gracefully with component. Function varies by platform (Sim/Hardware) and component type (Camera, Arduino, Sensor, ...) 
+            Function is blocking, implementation should specific a timeout parameter to ensure it does not hang.
             Example uses may be: 
             Args:
                 args (Any): Implementation specific parameters
