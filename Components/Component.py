@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
+from .Singletonmeta import SingletonMeta
 
-
-# TODO: Make all components singleton classes, and standardize code for retriving singleton instances. 
-class Component(ABC):
+class Component(ABC, metaclass=SingletonMeta):
     """ A generic non-interface specific entity that exists in the program. 
         A standardized set of routines need to be defined in the concrete impl of a comp.
         Specifically, before using a component for the first time, its bringup() routine will be called, 

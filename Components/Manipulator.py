@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
-from Component import Component
+from .Component import Component
 import numpy as np
-from World.Geometry import Pose
+from ..World.Geometry import Pose
 
-class Manipulator(ABC, Component):
+class Manipulator(Component, ABC):
     """ Abstract representation of a robotic manipulator. 
         High-level API call are defined here without implementation specfic behavior. 
     """

@@ -1,4 +1,8 @@
-from World.Geometry import RotMatrix, Point, Pose
+import sys
+sys.path.append('../')
+# sys.__package__ = 
+
+from stack_a_bot.World.Geometry import RotMatrix, Point, Pose
 import numpy as np
 
 ## TODO: Add unit testing framework 
