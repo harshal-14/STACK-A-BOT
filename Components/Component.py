@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from .Singletonmeta import SingletonMeta
+from .SingletonRegistry import SingletonMeta
 
 class Component(ABC, metaclass=SingletonMeta):
     """ A generic non-interface specific entity that exists in the program. 

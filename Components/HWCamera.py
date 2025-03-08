@@ -3,10 +3,10 @@ import numpy as np
 class HWCamera(Camera):
 
     def __init__(self):
-        print("HWCamera")
         pass
 
     def connect(self, *args):
+        print("connecting!")
         pass
 
     def bringup(self, *args):
