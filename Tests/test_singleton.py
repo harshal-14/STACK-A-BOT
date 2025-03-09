@@ -2,11 +2,15 @@ import sys
 sys.path.append('../')
 from stack_a_bot.Components.SingletonRegistry import get_singleton, update_singleton_registry
 
+from stack_a_bot.Components.Component import Component
 from stack_a_bot.Components.Camera import Camera
 from stack_a_bot.Components.Manipulator import Manipulator
 
 from stack_a_bot.Components.Hardware.HwCamera import HwCamera
 from stack_a_bot.Components.Sim.SimManipulator import SimManipulator
+from stack_a_bot.Components.Hardware.HwManipulator import HwManipulator
+
+from stack_a_bot.World.SimEnvironment import SimEnvironment
 
 from stack_a_bot.World.Geometry import Pose
 
@@ -54,12 +58,36 @@ try:
 except TypeError as e:
     pass
 
-
 ## Ensure no more instances can be called accidentially after lock is set
 
-Camera.lock()
+Component.lock()
 try: 
     Camera()
+    assert(False)
+except RuntimeError as e:
+    pass
+
+# Other uninstantiated classes should also be unable to make new instances
+try: 
+    HwCamera()
+    assert(False)
+except RuntimeError as e:
+    pass
+
+Component.unlock()
+
+# Testing SimEnvironment singleton behavior
+
+s1 = SimEnvironment(None)
+s2 = SimEnvironment(None)
+s3 = get_singleton(SimEnvironment)
+
+assert(s1 is s2)
+assert(s1 is s3)
+
+SimEnvironment.lock()
+try: 
+    SimEnvironment(None)
     assert(False)
 except RuntimeError as e:
     pass

@@ -21,19 +21,28 @@ class SingletonMeta(ABCMeta):
         """Lock the singleton class to prevent further instantiation/initialization."""
         cls._locked = True
         print(f"{cls.__name__} is now locked.")
+
+    @classmethod
+    def unlock(cls):
+        """Unlocks the singleton class to allow more instantiations."""
+        cls._locked = False
+        print(f"{cls.__name__} is now unlocked.")
     
 # Importing components here is neccesary to prevent circular imports. 
 # Component class require SingletonMeta Class 
 from .Component import Component
+from ..World.SimEnvironment import SimEnvironment 
 
 """singleton_instances holds all singleton objects."""
 _singleton_instances: dict[Type[Component], Component] = {}
+
+_singleton_classes = [Component, SimEnvironment]
     
 def get_singleton(cls: Type[Component]) -> Component:
     """ Returns an existing singleton instance. Instances will be created in the ComponentBringup Routine and nowhere else.
         ALL OTHER USER DEFINED routines should get obj references via this method
     """
-    if not isinstance(cls, type) or not issubclass(cls, Component):
+    if not issubclass(cls, Component) and cls not in _singleton_classes:
         raise TypeError(f"{cls} is not a valid singleton class.") 
     
     if cls not in _singleton_instances:

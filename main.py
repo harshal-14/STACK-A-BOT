@@ -5,11 +5,10 @@
 
     Active Items:
 
-        * Figure out Sim Environment stuff. Should we continually step in real-time in a seperate thread?
-        * Write linear interpolated path planning
-        * Flesh out Sim Manip impl for basic operations
         * Write Routine handler behavior
-        * Test behavior in main and ensure no crashes or errors. 
+        * Test currently implemented Rotuines
+        * Flesh out Sim Manip impl for basic operations
+        * Write linear interpolated path planning
         * Comment every class with future work and todos...
             * Make sure every implemented func has a docustring, all func headers have types
         * Figure out immediate action items for me and/or team.
@@ -20,22 +19,17 @@ import argparse
 from Runtime_Handling import RoutineScheduler
 from Runtime_Handling.Routines.Manipulation import ComponentBringup, Homing, ComponentShutdown
 from Runtime_Handling.Routines.Perception import EnvironmentSetup
-import pybullet as p
-import time
 def main(args:dict):
 
     initial_routines = []
     if args.mode == 'SIM':
-        initial_routines.append(EnvironmentSetup.EnvironmnetSetup())
+        initial_routines.append(EnvironmentSetup.EnvironmnetSetup(1e-3))
     initial_routines.append(ComponentBringup.ComponentBringup(args.mode))
     initial_routines.append(Homing.Homing())
     scheduler = RoutineScheduler.RoutineScheduler(initial_routines)
 
     while(scheduler.has_routines()):
         scheduler.run()
-        if args.mode == 'SIM':
-            p.stepSimulation()
-            time.sleep(1e-3)
         # add any other runtime logic that program needs. 
         # These could be things like the safety daemon, watchdog?, telemetry capture?
     

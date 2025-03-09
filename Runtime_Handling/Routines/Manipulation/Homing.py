@@ -18,10 +18,8 @@ class Homing(Routine):
         ret_status = Status(Condition.Success)
         cur_pos = self.manip_ref.get_joint_values()
         for i in range(cur_pos.shape()[0]):
-            if abs(cur_pos[i]) > self.homing_delta
-        
-        
-        
+            if abs(cur_pos[i]) > self.homing_delta:
+                pass
         return ret_status
     
     def end(self):
