@@ -43,10 +43,11 @@ class Routine(ABC):
         raise NotImplementedError("end() not implemented by subclass")
 
     @abstractmethod
-    def fault_handler(self) -> tuple[Status, dict]:
+    def fault_handler(self, prev_status:Status) -> tuple[Status, dict]:
         """Called in the event of a reported Fault status by any Routine functions. 
             This function should dictate future Actions/Routines to correct the fault.
-            
+            Args:
+                prev_status (Status): The status from the last ran function of the routine. 
             Returns:
                 status (Status): results of running fault_hanlder(). If condition is reported as Fault, program execution will halt.
                 outputs (dict): user defined outputs for fault correction. This will be fed into next routines input function.   

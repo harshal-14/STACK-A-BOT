@@ -35,5 +35,10 @@ Google offers a great style guide for python code...
 
 Please use their [docustring](https://google.github.io/styleguide/pyguide.html#383-functions-and-methods) format for commenting functions when possible. 
 
+## Quick Tips
 
-    
+* Classes are PascalCase, functions and varables are snake_case
+* internal variables are prepended with underscores, and internal functions with two-underscores (e.g "_lock")
+* Every function should have a docustring if behavior is not obvious
+* All function parameters should have type descriptors in header
+* Try and keep lines to a max of 80 characters long. Not a hard/fast rule.

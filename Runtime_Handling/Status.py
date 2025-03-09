@@ -6,7 +6,8 @@ class Condition(Enum):
     Fault = -1
 
 class Status():
-    def __init__(self, cond: Condition, err_msg:str="", fault_params:dict=None):
+    def __init__(self, cond: Condition, err_msg:str="", err_type:BaseException=RuntimeError, fault_params:dict=None):
         self.condition = cond
         self.err_msg = err_msg
+        self.err_type = err_type
         self.fault_params = fault_params

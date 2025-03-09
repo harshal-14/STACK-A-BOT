@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from Component import Component
 
-class End_Effector(ABC, Component):
+class EndEffector(ABC, Component):
     """Abstract representation of a suction-cup gripper on the robot end effector. 
         High-level API call are defined here without implementation specfic behavior. """
     

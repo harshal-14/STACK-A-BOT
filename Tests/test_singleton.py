@@ -3,23 +3,23 @@ sys.path.append('../')
 from stack_a_bot.Components.SingletonRegistry import get_singleton, update_singleton_registry
 
 from stack_a_bot.Components.Camera import Camera
-from stack_a_bot.Components.HWCamera import HWCamera
-
 from stack_a_bot.Components.Manipulator import Manipulator
-from stack_a_bot.Components.SIMManipulator import SIMManipulator
+
+from stack_a_bot.Components.Hardware.HwCamera import HwCamera
+from stack_a_bot.Components.Sim.SimManipulator import SimManipulator
 
 from stack_a_bot.World.Geometry import Pose
 
 # Ensure that singleton behavior is kept when instantiating A concrete singleton class
-a2 = HWCamera()
-a1 = get_singleton(HWCamera)
+a2 = HwCamera()
+a1 = get_singleton(HwCamera)
 
 assert(a1 is a2)
 
 # Ensure that calls to uninstantiated objects raise a KeyError
 
 try:
-    get_singleton(SIMManipulator)
+    get_singleton(SimManipulator)
     assert(False)
 except KeyError as e:
     pass
@@ -27,14 +27,14 @@ except KeyError as e:
 # Ensures that when we call get_singleton on a Abstract Superclass, 
 # we get the concrete subclass impl
 
-SIMManipulator()
-update_singleton_registry(Manipulator, get_singleton(SIMManipulator))
-update_singleton_registry(Camera, get_singleton(HWCamera))
+SimManipulator()
+update_singleton_registry(Manipulator, get_singleton(SimManipulator))
+update_singleton_registry(Camera, get_singleton(HwCamera))
 
 a1 = get_singleton(Camera)
-a2 = get_singleton(HWCamera)
+a2 = get_singleton(HwCamera)
 b1 = get_singleton(Manipulator)
-b2 = get_singleton(SIMManipulator)
+b2 = get_singleton(SimManipulator)
 
 assert(a1 is a2)
 assert(not a1 is b1)
@@ -58,4 +58,8 @@ except TypeError as e:
 ## Ensure no more instances can be called accidentially after lock is set
 
 Camera.lock()
-Camera()
+try: 
+    Camera()
+    assert(False)
+except RuntimeError as e:
+    pass
