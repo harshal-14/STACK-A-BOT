@@ -25,7 +25,7 @@ class SimEnvironment(metaclass=SingletonMeta):
         p.setTimeStep(self.time_step)
         p.setPhysicsEngineParameter(fixedTimeStep=self.time_step, numSolverIterations=100, numSubSteps=10)
         p.setRealTimeSimulation(True)
-        Sim_Thread.start()
+        self.thread_obj.start()
 
     def stop_environment(self):
         self.stop_cond.set()
@@ -39,10 +39,10 @@ class Sim_Thread(threading.Thread):
         super().__init__(group, target, name, args, kwargs, daemon=daemon)
         self.step_time = step_time
         self.stop_cond = stop_cond
-        
+
     def run(self):
         """Two possible impls. sleep for step_time and then call p.stepSim(), 
             or poll time and step when diff>step_time. """
         while(not self.stop_cond.is_set()):
                 p.stepSimulation()
-                time.sleep(self.step_time_ms)
+                time.sleep(self.step_time)

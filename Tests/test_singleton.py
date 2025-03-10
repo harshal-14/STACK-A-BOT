@@ -1,18 +1,16 @@
-import sys
-sys.path.append('../')
-from stack_a_bot.Components.SingletonRegistry import get_singleton, update_singleton_registry
+from ..Components.SingletonRegistry import get_singleton, update_singleton_registry
 
-from stack_a_bot.Components.Component import Component
-from stack_a_bot.Components.Camera import Camera
-from stack_a_bot.Components.Manipulator import Manipulator
+from ..Components.Component import Component
+from ..Components.Camera import Camera
+from ..Components.Manipulator import Manipulator
 
-from stack_a_bot.Components.Hardware.HwCamera import HwCamera
-from stack_a_bot.Components.Sim.SimManipulator import SimManipulator
-from stack_a_bot.Components.Hardware.HwManipulator import HwManipulator
+from ..Components.Hardware.HwCamera import HwCamera
+from ..Components.Sim.SimManipulator import SimManipulator
+from ..Components.Hardware.HwManipulator import HwManipulator
 
-from stack_a_bot.World.SimEnvironment import SimEnvironment
+from ..World.SimEnvironment import SimEnvironment
 
-from stack_a_bot.World.Geometry import Pose
+from ..World.Geometry import Pose
 
 # Ensure that singleton behavior is kept when instantiating A concrete singleton class
 a2 = HwCamera()

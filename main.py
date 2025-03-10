@@ -4,9 +4,6 @@
     Behavior includes running a simple movement with a simulated manip and cleanly shutting down.
 
     Active Items:
-
-        * Write Routine handler behavior
-        * Test currently implemented Rotuines
         * Flesh out Sim Manip impl for basic operations
         * Write linear interpolated path planning
         * Comment every class with future work and todos...
@@ -16,23 +13,26 @@
 """
 
 import argparse
-from Runtime_Handling import RoutineScheduler
-from Runtime_Handling.Routines.Manipulation import ComponentBringup, Homing, ComponentShutdown
-from Runtime_Handling.Routines.Perception import EnvironmentSetup
+from .Components.SingletonRegistry import * # very important line
+from .Runtime_Handling import RoutineScheduler
+from .Runtime_Handling.Routines.Manipulation import ComponentBringup, Homing, ComponentShutdown
+from .Runtime_Handling.Routines.Perception import EnvironmentSetup
 def main(args:dict):
 
+    RoutineScheduler.RoutineScheduler.run_routines([ComponentBringup.ComponentBringup(args.mode)])
     initial_routines = []
     if args.mode == 'SIM':
         initial_routines.append(EnvironmentSetup.EnvironmnetSetup(1e-3))
-    initial_routines.append(ComponentBringup.ComponentBringup(args.mode))
+    
     initial_routines.append(Homing.Homing())
     scheduler = RoutineScheduler.RoutineScheduler(initial_routines)
-
+    
     while(scheduler.has_routines()):
         scheduler.run()
         # add any other runtime logic that program needs. 
         # These could be things like the safety daemon, watchdog?, telemetry capture?
-    
+    while(1) :
+        pass
     """After we have finished all planned Routines, we should move to a safe position, and disconnect."""
     #TODO, write routine to save any data to disk (images, telemetry, point clouds...) 
     #TODO: write routine to move robot to safe positon for shutdown

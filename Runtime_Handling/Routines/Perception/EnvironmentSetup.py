@@ -1,6 +1,6 @@
-from Routine import Routine
+from ..Routine import Routine
+from .. .Status import Status, Condition
 from .. ..World.SimEnvironment import SimEnvironment
-from Status import Status, Condition
 import pybullet as p
 
 class EnvironmnetSetup(Routine):
@@ -11,7 +11,9 @@ class EnvironmnetSetup(Routine):
 
     def init(self, prev_outputs, parameters = None) -> Status:
         p.connect(p.GUI)
+        SimEnvironment.unlock() # ensures that we can make a new singleton object
         self.sim_env = SimEnvironment(time_step=1e-3)
+        SimEnvironment.lock()
         return Status(Condition.Success) 
     
     def loop(self) -> Status:
@@ -22,5 +24,5 @@ class EnvironmnetSetup(Routine):
         """Not sure what to add here if anything..."""
         return Status(Condition.Success), None
     
-    def fault_handler(self)-> tuple[Status, dict]:
+    def handle_fault(self)-> tuple[Status, dict]:
         return None, None

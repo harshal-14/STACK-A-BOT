@@ -1,8 +1,8 @@
-from Routine import Routine
-from .. ..Components import Camera, EndEffector, Manipulator, SingletonRegistry
+from ..Routine import Routine
+from .. ..Components import Camera, EndEffector, Manipulator, SingletonRegistry, Component
 from .. ..Components.Hardware import HwCamera, HwEndEffector, HwManipulator
 from .. ..Components.Sim import SimCamera, SimEndEffector, SimManipulator
-from Status import Status, Condition
+from .. .Status import Status, Condition
 class ComponentBringup(Routine):
 
     def __init__(self, mode:str) -> Status:
@@ -13,13 +13,13 @@ class ComponentBringup(Routine):
 
         if self.mode == 'SIM':
             ## initiate all Sim Components and then lock all component types
-            cam = SimCamera.SimCamera(""" Insert Params here""") 
-            ee = SimEndEffector.SimEndEffector(""" Insert Params here""")
-            manip = SimManipulator.SimManipulator(""" Insert Params here""")
+            cam = SimCamera.SimCamera() 
+            ee = SimEndEffector.SimEndEffector()
+            manip = SimManipulator.SimManipulator()
         elif self.mode == 'HW':
-            cam = HwCamera.HwCamera(""" Insert Params here""") 
-            ee = HwEndEffector.HwEndEffector(""" Insert Params here""")
-            manip = HwManipulator.HwManipulator(""" Insert Params here""")
+            cam = HwCamera.HwCamera() 
+            ee = HwEndEffector.HwEndEffector()
+            manip = HwManipulator.HwManipulator()
         else:
             return Status(Condition.Fault, 
                           err_msg=f"Wrong mode given, expected ['HW', 'SIM'], given {self.mode}", 
@@ -32,17 +32,7 @@ class ComponentBringup(Routine):
         SingletonRegistry.update_singleton_registry(Manipulator.Manipulator, manip)
 
         # prevent new instantiations from occuring past this point without EXPLICIT knowledge
-        Camera.Camera.lock()
-        EndEffector.EndEffector.lock()
-        Manipulator.Manipulator.lock()
-
-        SimCamera.SimCamera.lock()
-        SimEndEffector.SimEndEffector.lock()
-        SimManipulator.SimManipulator.lock()
-
-        HwCamera.HwCamera.lock()
-        HwEndEffector.HwEndEffector.lock()
-        HwManipulator.HwManipulator.lock()
+        Component.Component.lock()
 
         return Status(Condition.Success)
 
@@ -62,7 +52,7 @@ class ComponentBringup(Routine):
         """Nothing to do in this end-step for now..."""
         return Status(Condition.Success), dict()
     
-    def fault_handler(self, prev_status) -> tuple[Status, dict]:
+    def handle_fault(self, prev_status) -> tuple[Status, dict]:
         """ If Wrong mode given, fault is unrecoverable. 
             If compononents cannont be connected to, fault is also unrecoverable. 
             """

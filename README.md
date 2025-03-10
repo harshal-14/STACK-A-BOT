@@ -28,6 +28,29 @@ sudo docker run --net=host --rm -it \
     
 This will take around 12-15 mins to build. Patience is the key!! Alternatively, pull the docker image from this.(Coming soon)
 
+# Running the program
+
+This codebase is meant to be run as a package, and so you need to run it from an outside directory
+
+``` 
+venv/
+stack_a_bot/
+    code
+    main.py
+    ...
+```
+run the main code as 
+```
+python -m stack_a_bot.main 
+```
+or if running tests
+```
+python -m stack_a_bot.Tests.{testfile_name}
+```
+# Debugging
+
+VSCodes internal debugger won't work normally for this package setup, so we need to setup a launch.json to specifically debug our main. Use the provided .vscode/launch.json to launch main in debug mode.
+
 
 # Style Guide
 

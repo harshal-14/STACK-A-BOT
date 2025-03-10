@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from Status import Status
+from ..Status import Status
 
 class Routine(ABC):
     """Interface providing a standardized form factor for all user defined behavior of the system. 
@@ -27,7 +27,7 @@ class Routine(ABC):
             loop() stops executing once it returns Success status condition
             Returns:
                 status (Status): result of running loop(). Success means end() will run next, 
-                In_Progress means loop will continue to run, Fault incurs a call to fault_handler() 
+                In_Progress means loop will continue to run, Fault incurs a call to handle_fault() 
         """
         raise NotImplementedError("loop() not implemented by subclass")
 
@@ -43,8 +43,8 @@ class Routine(ABC):
         raise NotImplementedError("end() not implemented by subclass")
 
     @abstractmethod
-    def fault_handler(self, prev_status:Status) -> tuple[Status, dict]:
-        """Called in the event of a reported Fault status by any Routine functions. 
+    def handle_fault(self, prev_status:Status) -> tuple[Status, dict]:
+        """Called in the event of a reported fault status by any Routine functions. 
             This function should dictate future Actions/Routines to correct the fault.
             Args:
                 prev_status (Status): The status from the last ran function of the routine. 
@@ -52,4 +52,4 @@ class Routine(ABC):
                 status (Status): results of running fault_hanlder(). If condition is reported as Fault, program execution will halt.
                 outputs (dict): user defined outputs for fault correction. This will be fed into next routines input function.   
             """
-        raise NotImplementedError("fault_handler() not implemented by subclass")
+        raise NotImplementedError("handle_fault() not implemented by subclass")
