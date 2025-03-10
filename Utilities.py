@@ -1,6 +1,17 @@
 import typing
 
 
+"""Time conversions"""
+NS_TO_MS = 1e-6
+NS_TO_S = 1e-9
+
+MS_TO_NS = 1e6
+MS_TO_S = 1e-3
+
+S_TO_MS = 1e3
+S_TO_NS = 1e9
+
+
 """ Perhaps some thought should go into how we check inputs to function to ensure safety. 
     Do we want a class specific to sanatizing inputs?
     Do we want to make a "one size fits all" function to do this?

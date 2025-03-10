@@ -5,18 +5,18 @@ from .. ..Components.Sim import SimCamera, SimEndEffector, SimManipulator
 from .. .Status import Status, Condition
 class ComponentBringup(Routine):
 
-    def __init__(self, mode:str) -> Status:
-        self.mode = mode
+    def __init__(self, args:dict) -> Status:
+        self.args = args
         self.comp_list = []
 
     def init(self, prev_outputs, parameters = None):
-
-        if self.mode == 'SIM':
+        Component.Component.unlock()
+        if self.args.mode == 'SIM':
             ## initiate all Sim Components and then lock all component types
             cam = SimCamera.SimCamera() 
             ee = SimEndEffector.SimEndEffector()
-            manip = SimManipulator.SimManipulator()
-        elif self.mode == 'HW':
+            manip = SimManipulator.SimManipulator(self.args.URDF_file,self.args.meshes_dir)
+        elif self.args.mode == 'HW':
             cam = HwCamera.HwCamera() 
             ee = HwEndEffector.HwEndEffector()
             manip = HwManipulator.HwManipulator()

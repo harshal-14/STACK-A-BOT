@@ -59,7 +59,7 @@ class RoutineScheduler():
         elif self._last_status.cond == Condition.Fault:
             self._scheduler_state = SchedulerState.FAULT_HANDLER
 
-        elif self._scheduler_state.cond == Condition.In_Progress:
+        elif self._last_status.cond == Condition.In_Progress:
             pass # loop unfinished
         else:
             raise RuntimeError("Unknown Status condition given")
@@ -69,7 +69,6 @@ class RoutineScheduler():
         if self._last_status.cond == Condition.Success:
             self._routine_queue.pop(0)
             self._scheduler_state = SchedulerState.INIT
-
         elif self._last_status.cond == Condition.Fault:
             self._scheduler_state = SchedulerState.FAULT_HANDLER
 
@@ -89,6 +88,7 @@ class RoutineScheduler():
         raise self._last_status.err_type(self._last_status.err_msg)
 
     def run(self):
+        """invokes non-blocking calls to routine's current state handler"""
         if not self.has_routines():
             pass
         elif self._scheduler_state == SchedulerState.INIT:
@@ -104,8 +104,8 @@ class RoutineScheduler():
 
     @classmethod
     def run_routines(cls, routines: list[Routine]) -> dict:
-        """ 
-            runs a set of routines by making a new scheduler object and running until completion.
+        """ Runs a set of routines by making a new scheduler object and running until completion.
+            This method is BLOCKING, and is meant as a way of running a set of sequential, uninterruptable routines.
         """
         scheduler = RoutineScheduler(routines)
         while(scheduler.has_routines()):

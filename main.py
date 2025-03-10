@@ -13,30 +13,37 @@
 """
 
 import argparse
+import numpy as np
+
 from .Components.SingletonRegistry import * # very important line
 from .Runtime_Handling import RoutineScheduler
-from .Runtime_Handling.Routines.Manipulation import ComponentBringup, Homing, ComponentShutdown
+from .Runtime_Handling.Routines.Manipulation import ComponentBringup, LinearInterpolationJS, ComponentShutdown
 from .Runtime_Handling.Routines.Perception import EnvironmentSetup
-def main(args:dict):
 
-    RoutineScheduler.RoutineScheduler.run_routines([ComponentBringup.ComponentBringup(args.mode)])
+def main(args:dict):
+    """Setup components and environment"""
     initial_routines = []
     if args.mode == 'SIM':
         initial_routines.append(EnvironmentSetup.EnvironmnetSetup(1e-3))
-    
-    initial_routines.append(Homing.Homing())
-    scheduler = RoutineScheduler.RoutineScheduler(initial_routines)
+    initial_routines.append(ComponentBringup.ComponentBringup(args))
+    RoutineScheduler.RoutineScheduler.run_routines(initial_routines)
+
+    """Add all routines that should run during operation"""
+    home_q = np.array([[0], [0], [-np.pi/2], [0], [0], [0]])
+    routine_queue = []
+    routine_queue.append(LinearInterpolationJS.LinearInterpolationJS(home_q, 3))
+    scheduler = RoutineScheduler.RoutineScheduler(routine_queue)
     
     while(scheduler.has_routines()):
         scheduler.run()
         # add any other runtime logic that program needs. 
         # These could be things like the safety daemon, watchdog?, telemetry capture?
-    while(1) :
+    while(1):
         pass
     """After we have finished all planned Routines, we should move to a safe position, and disconnect."""
     #TODO, write routine to save any data to disk (images, telemetry, point clouds...) 
     #TODO: write routine to move robot to safe positon for shutdown
-    home_robot2 = Homing.Homing()
+    home_robot2 = LinearInterpolationJS.LinearInterpolationJS(home_q, 3)
     # gracefully disconnects from components.
     shutdown = ComponentShutdown.ComponentShutdown()
     
@@ -54,8 +61,8 @@ def parse_args():
                                                  Pena, S., Raval, D., 
                                                  Rhodes, J., Virone, A.""")
     parser.add_argument('--mode', type=str, default='SIM', help='Which interface to use. Options: "SIM" (default), "HW"')
-    parser.add_argument('--URDF_file', type=str, default='thor_arm_description/urdf/thor_robot.urdf', help="Filepath of the robot's urdf. ")
-    parser.add_argument('--meshes_dir', type=str, default='thor_arm_description/meshes/', help="Directory where the robot's mesh files live. Useful for sim or digital twin.")
+    parser.add_argument('--URDF_file', type=str, default='stack_a_bot/thor_arm_description/urdf/thor_robot.urdf', help="Filepath of the robot's urdf. ")
+    parser.add_argument('--meshes_dir', type=str, default='stack_a_bot/thor_arm_description/meshes/', help="Directory where the robot's mesh files live. Useful for sim or digital twin.")
     ## TODO add other args we want in this program...
 
     return parser.parse_args()

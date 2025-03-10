@@ -4,10 +4,11 @@ from ..Status import Status
 class Routine(ABC):
     """Interface providing a standardized form factor for all user defined behavior of the system. 
         Routines should be designed to be queued sequentially, and may be called within other Routines.
-
     """
+    ## NOTE: Currently unimplemented behavior -> handling sub-routines. 
+    # It wasnt very clear how best to do this, so perhaps someone should undertake this endeavor... 
     
-    ## NOTE: Not actually sure how we could pass in aditionally parameters ATM. might be a useless field...
+    ## NOTE: Not actually sure how we could pass in aditional parameters ATM. might be a useless field...
     @abstractmethod
     def init(self, prev_outputs:dict, parameters:dict=None) -> Status:
         """Called first in Routine Handling and runs once. Useful for setting parameters at run-time that may differ from those at instantiation

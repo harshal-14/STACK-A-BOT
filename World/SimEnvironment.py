@@ -4,9 +4,6 @@ import time
 import pybullet as p
 import pybullet_data
 
-NS_TO_MS = 1e-6
-NS_TO_S = 1e-9
-
 #TODO: @Chirag @Harshal @Raval, Someone with better pybullet knowledge pls fill in this Routine... this is my best guess as to what we need
 
 class SimEnvironment(metaclass=SingletonMeta):
