@@ -9,8 +9,12 @@ class SchedulerState(Enum):
     FAULT_HANDLER = 3
 
 class RoutineScheduler():
-    """RoutineScheduler handles the Routine Queue, where all jobs run in sequential order. 
-        Routines run in a FIFO order unless specifically emplaced by another routine. """
+    """Schedules and exectures queued routines.
+
+        All jobs run sequentially, and must implement the Routine interface. 
+        Routines run in a FIFO order unless specifically emplaced by another routine. 
+        The outputs from current job are fed as inputs to the next job in the queue.     
+    """
 
     def __init__(self, initial_routines):
         self._routine_queue = []
@@ -37,8 +41,10 @@ class RoutineScheduler():
             return True
         return False
     
-    def handle_init(self):
-        self._last_status = self._routine_queue[0].init(self._last_output)
+    def _handle_init(self):
+        """runs the init() of the top element in routine_queue. 
+            Handles state transition and raises errors if the inproperly implemented"""
+        self._last_status = self._routine_queue[0]._init(self._last_output)
         if self._last_status.cond == Condition.Success:
             self._scheduler_state = SchedulerState.LOOP
 
@@ -46,13 +52,15 @@ class RoutineScheduler():
             self._scheduler_state = SchedulerState.FAULT_HANDLER
 
         elif self._scheduler_state.cond == Condition.In_Progress:
-            raise RuntimeError("Invalid Status condition given")
+            raise RuntimeError(f"Invalid Status condition given from {type(self._routine_queue[0])}.init()")
         else:
-            raise RuntimeError("Unknown Status condition given")
+            raise RuntimeError(f"Unknown Status condition given from {type(self._routine_queue[0])}.init()")
             
 
-    def handle_loop(self):
-        self._last_status = self._routine_queue[0].loop()
+    def _handle_loop(self):
+        """runs the loop() of the top element in routine_queue until status reports successful 
+            Handles state transition and raises errors if the inproperly implemented"""
+        self._last_status = self._routine_queue[0]._loop()
         if self._last_status.cond == Condition.Success:
             self._scheduler_state = SchedulerState.END
             
@@ -62,10 +70,12 @@ class RoutineScheduler():
         elif self._last_status.cond == Condition.In_Progress:
             pass # loop unfinished
         else:
-            raise RuntimeError("Unknown Status condition given")
+            raise RuntimeError(f"Unknown Status condition given from {type(self._routine_queue[0])}.loop()")
         
-    def handle_end(self):
-        self._last_status, self._last_output = self._routine_queue[0].end()
+    def _handle_end(self):
+        """runs the end() of the top element in routine_queue. 
+            Handles state transition and raises errors if the inproperly implemented"""
+        self._last_status, self._last_output = self._routine_queue[0]._end()
         if self._last_status.cond == Condition.Success:
             self._routine_queue.pop(0)
             self._scheduler_state = SchedulerState.INIT
@@ -73,18 +83,18 @@ class RoutineScheduler():
             self._scheduler_state = SchedulerState.FAULT_HANDLER
 
         elif self._last_status.cond == Condition.In_Progress:
-            raise RuntimeError("Invalid Status condition given")
+            raise RuntimeError(f"Invalid Status condition given from {type(self._routine_queue[0])}.end()")
         else:
-            raise RuntimeError("Unknown Status condition given")
+            raise RuntimeError(f"Unknown Status condition given from {type(self._routine_queue[0])}.end()")
 
-    def handle_fault(self):
+    def _handle_fault(self):
         """This function should contain logic to get us back on track... TODO: expand this section
             Possible actions to take:
                 Some internal recorrective steps...
                 Queue a set of other jobs to fix current situation...
                 raise error in unrecoverable position...
         """
-        self._last_status, self._last_output = self._routine_queue[0].handle_fault()
+        self._last_status, self._last_output = self._routine_queue[0]._handle_fault()
         raise self._last_status.err_type(self._last_status.err_msg)
 
     def run(self):
@@ -92,13 +102,13 @@ class RoutineScheduler():
         if not self.has_routines():
             pass
         elif self._scheduler_state == SchedulerState.INIT:
-            self.handle_init()
+            self._handle_init()
         elif self._scheduler_state == SchedulerState.LOOP:
-            self.handle_loop()
+            self._handle_loop()
         elif self._scheduler_state == SchedulerState.END:
-            self.handle_end()
+            self._handle_end()
         elif self._scheduler_state == SchedulerState.FAULT_HANDLER:
-            self.handle_fault()
+            self._handle_fault()
         else:
             raise RuntimeError("UNKNOWN Scheduler State Achieved")
 

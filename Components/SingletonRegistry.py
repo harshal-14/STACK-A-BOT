@@ -5,7 +5,9 @@ class SingletonMeta(ABCMeta):
     """ Ensures correct singleton behavior for all component subclasses. 
         As it stands, we only need one representation of each type of class. 
         Therefore we implemented singleton behaviors for all components so that they can be referenced globally.
-        calls to __new__ or __init__ are overridden to reference original object.    
+        calls to __new__ or __init__ are overridden to reference original object.\n
+
+        After the initial bringup of the components, they are locked to ensure that we do not accidentially try and create/reference a part that does not exist in the system.    
     """
     _locked = False
 
@@ -20,13 +22,11 @@ class SingletonMeta(ABCMeta):
     def lock(cls):
         """Lock the singleton class to prevent further instantiation/initialization."""
         cls._locked = True
-        print(f"{cls.__name__} is now locked.")
 
     @classmethod
     def unlock(cls):
         """Unlocks the singleton class to allow more instantiations."""
         cls._locked = False
-        print(f"{cls.__name__} is now unlocked.")
     
 # Importing components here is neccesary to prevent circular imports. 
 # Component class require SingletonMeta Class 

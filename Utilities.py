@@ -1,5 +1,6 @@
-import typing
+""" Commonly re-used functions, constants, QoL functions."""
 
+import typing
 
 """Time conversions"""
 NS_TO_MS = 1e-6

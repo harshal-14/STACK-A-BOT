@@ -1,14 +1,14 @@
-"""Riley Todo List for this branch:
-    I want to write a demo program that shows software architecture in action, 
-    and contains well written, documented code for people to branch off.
-    Behavior includes running a simple movement with a simulated manip and cleanly shutting down.
+"""
+Add actual docustring to this...
+"""
 
+"""Riley Todo List for this branch:
     Active Items:
-        * Flesh out Sim Manip impl for basic operations
-        * Write linear interpolated path planning
-        * Comment every class with future work and todos...
-            * Make sure every implemented func has a docustring, all func headers have types
-        * Figure out immediate action items for me and/or team.
+        * create demo behavior
+            * spawn box somewhere....
+            * move lin interpolate to box
+            * implement ending routines for clean shutdown
+        * Figure out immediate action items as a team
         * Implement pytest behavior?
 """
 
@@ -24,16 +24,14 @@ def main(args:dict):
     """Setup components and environment"""
     initial_routines = []
     if args.mode == 'SIM':
-        initial_routines.append(EnvironmentSetup.EnvironmnetSetup(1e-3))
+        initial_routines.append(EnvironmentSetup.EnvironmnetSetup(1e-5))
     initial_routines.append(ComponentBringup.ComponentBringup(args))
-    RoutineScheduler.RoutineScheduler.run_routines(initial_routines)
 
     """Add all routines that should run during operation"""
     home_q = np.array([[0], [0], [-np.pi/2], [0], [0], [0]])
-    routine_queue = []
-    routine_queue.append(LinearInterpolationJS.LinearInterpolationJS(home_q, 3))
-    scheduler = RoutineScheduler.RoutineScheduler(routine_queue)
-    
+    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(home_q, 5))
+
+    scheduler = RoutineScheduler.RoutineScheduler(initial_routines)
     while(scheduler.has_routines()):
         scheduler.run()
         # add any other runtime logic that program needs. 

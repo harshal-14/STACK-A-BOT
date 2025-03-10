@@ -4,15 +4,19 @@ from .. ..World.SimEnvironment import SimEnvironment
 import pybullet as p
 
 class EnvironmnetSetup(Routine):
+    """ In the event of a simulated run, creates an environment mananger object, and relevent sim objects (pallet and boxes?) 
 
-    def __init__(self, time_step):
-        self.time_step = time_step
+    Attributes:
+        time_step (float): time in seconds between simulation step updates.
+    """
+    def __init__(self, time_step: float):
+        self.time_step = time_step # in seconds
         pass
 
     def init(self, prev_outputs, parameters = None) -> Status:
         p.connect(p.GUI)
         SimEnvironment.unlock() # ensures that we can make a new singleton object
-        self.sim_env = SimEnvironment(time_step=1e-3)
+        self.sim_env = SimEnvironment(time_step=self.time_step)
         SimEnvironment.lock()
         return Status(Condition.Success) 
     

@@ -1,6 +1,18 @@
-import numpy as np
+""" Objects conveying physical quantities about our system.
+ 
+    Three main classes are defined:
+        RotMatrix: Rotation Matrix in S0(3)
+        Point: Metric distance in R3
+        Pose: Combined object containing 6-DoF Transformation.
+"""
 
-## TODO: Add type checking to these classes and retest.
+""" TODO: Implement as needed - increased uses for each class:
+            Obj to different representations methods
+            Overridden operators ('-', '+', ...)
+            Other commonly utilized math operations
+            ...    
+"""  
+import numpy as np
 
 class RotMatrix():
     def __init__(self, rot):

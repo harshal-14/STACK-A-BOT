@@ -3,7 +3,7 @@ from .SingletonRegistry import SingletonMeta
 
 class Component(ABC, metaclass=SingletonMeta):
     """ A generic non-interface specific entity that exists in the program. 
-        A standardized set of routines need to be defined in the concrete impl of a comp.
+        A standardized set of functions need to be defined in the concrete impl of a comp.\n
         Specifically, before using a component for the first time, its bringup() routine will be called, 
         and any subsequent times the component will be attatched or detachted, calls to connect() and disconnect() will be used.
     """
@@ -16,7 +16,7 @@ class Component(ABC, metaclass=SingletonMeta):
             * Connecting to a component via serial comm.
             * Invoking a set of test actuations on each motor.
             * Calling of simulation specific instantiations or steps
-            kwargs:
+            Arguments:
                 kwargs (Any): Implementation specific parameters neccesary for instantiation. 
             Returns:
                 status (int): Returning 0 indicates a success, and any non-zero value indicates a failure. 
@@ -27,7 +27,7 @@ class Component(ABC, metaclass=SingletonMeta):
     def connect(self, **kwargs) -> int:
         """ Establishes connection with component. Function varies by platform (Sim/Hardware) and component type (Camera, Arduino, Sensor, ...) 
             Function is blocking, implementation should specific a timeout parameter to ensure it does not hang during connection sequence.
-            kwargs:
+            Arguments:
                 kwargs (Any): Implementation specific parameters neccesary for connection.
             Returns:
                 status (int): Returning 0 indicates a success, and any non-zero value indicates a failure. 
@@ -38,7 +38,7 @@ class Component(ABC, metaclass=SingletonMeta):
         """ Disconnects gracefully with component. Function varies by platform (Sim/Hardware) and component type (Camera, Arduino, Sensor, ...) 
             Function is blocking, implementation should specific a timeout parameter to ensure it does not hang.
             Example uses may be: 
-            kwargs:
+            Arguments:
                 kwargs (Any): Implementation specific parameters
             Returns:
                 status (int): Returning 0 indicates a success, and any non-zero value indicates a failure. 

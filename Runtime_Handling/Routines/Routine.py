@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from ..Status import Status
 
 class Routine(ABC):
-    """Interface providing a standardized form factor for all user defined behavior of the system. 
+    """Interface providing a standardized form factor for all user defined actions of the system. 
         Routines should be designed to be queued sequentially, and may be called within other Routines.
     """
     ## NOTE: Currently unimplemented behavior -> handling sub-routines. 

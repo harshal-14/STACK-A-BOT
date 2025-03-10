@@ -3,8 +3,13 @@ from .Component import Component
 
 class EndEffector(Component, ABC):
     """Abstract representation of a suction-cup gripper on the robot end effector. 
-        High-level API call are defined here without implementation specfic behavior. """
+        High-level API call are defined here without implementation specfic behavior.\n
+        EndEffector is a singleton object with one of its concrete classes being defined in its place.
+        It can be refered to via `SingletonRegistry.get_singleton(EndEffector)`. 
+    """
     
+    # TODO: Manipulation team: Define all EE behavior here, and implement the methods in both Hw and Sim impls. 
+    # We should decide if any sensors attached should be made into their own components, or defined in here...
     @abstractmethod
     def get_status(self) -> int:
         """ Retrieves the status of the end_effector in SW.

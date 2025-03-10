@@ -5,9 +5,12 @@ from ..World.Geometry import Pose
 
 class Manipulator(Component, ABC):
     """ Abstract representation of a robotic manipulator. 
-        High-level API call are defined here without implementation specfic behavior. 
+        High-level API call are defined here without implementation specfic behavior. \n
+        Manipulator is a singleton object with one of its concrete classes being defined in its place.
+        It can be refered to via `SingletonRegistry.get_singleton(Manipulator)`. 
     """
-
+    
+    # TODO: Manipulation team: Define all behavior here, and implement the methods in both Hw and Sim impls. 
     @abstractmethod
     def go_to(self, q_array:np.ndarray) -> int:
         """Sends a command to the interface to move actuators in joint-space. 

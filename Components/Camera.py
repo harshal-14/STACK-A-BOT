@@ -3,9 +3,13 @@ from .Component import Component
 import numpy as np
 
 class Camera(Component, ABC):
-    """Abstract representation of an OAK-D light camera . 
-        High-level API call are defined here without implementation specfic behavior. """
+    """Abstract representation of an OAK-D light camera. 
+        High-level API call are defined here without implementation specfic behavior.\n
+        Camera is a singleton object with one of its concrete classes being defined in its place.
+        It can be refered to via `SingletonRegistry.get_singleton(Camera)`. 
+    """
 
+    # TODO: Perception Team: Define all Camera behavior here, and implement the methods in both Hw and Sim Camera impls. 
     @abstractmethod
     def get_RGB_image(self) -> np.ndarray:
         """ Retrieves image from the central RGBD camera.
@@ -25,5 +29,3 @@ class Camera(Component, ABC):
     @abstractmethod
     def get_depth_data(self): # TODO: What type is returned?
         raise NotImplementedError("get_depth_data() not implemented by subclass")
-    
-    # TODO: Query perception team to get more input on functionalities.

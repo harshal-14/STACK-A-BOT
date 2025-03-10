@@ -1,15 +1,28 @@
 from ..Camera import Camera 
 import numpy as np
-class SimCamera(Camera):
+import pybullet as p
 
+class SimCamera(Camera):
+    """Low-level integration/spoofing of simulated camera. 
+
+    All Images/data is retrieved from pybullet replica and made available through forward-facing API calls.
+    There are native ways to spoof camera data, OR, outputs can be faked all together...\n
+    SimCamera is a singleton object and can be refered to via `SingletonRegistry.get_singleton(Camera)`. 
+        
+    Attributes:
+        a (type): example attribute
+        b (type): example attribute
+    """
+
+    # TODO: Implement camera integration.
     def __init__(self):
         print("SimCamera")
         pass
 
-    def connect(self, **kwargs) -> int:
-        return 0
-
     def bringup(self, **kwargs) -> int:
+        return self.connect(kwargs=kwargs)
+
+    def connect(self, **kwargs) -> int:
         return 0
 
     def disconnet(self, **kwargs) -> int:

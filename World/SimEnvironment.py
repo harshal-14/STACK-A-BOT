@@ -24,6 +24,10 @@ class SimEnvironment(metaclass=SingletonMeta):
         p.setRealTimeSimulation(True)
         self.thread_obj.start()
 
+    def spawn_box(self):
+        # TODO: Implement, spawn boxes in sim...
+        pass
+
     def stop_environment(self):
         self.stop_cond.set()
         self.thread_obj.join(timeout=2.0)
