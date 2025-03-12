@@ -23,7 +23,7 @@ class HwManipulator(Manipulator):
     def bringup(self, **kwargs) -> int:
         return 0
 
-    def disconnet(self, **kwargs) -> int:
+    def disconnect(self, **kwargs) -> int:
         return 0
 
     def go_to(self, q_array: np.ndarray) -> int:

@@ -34,7 +34,7 @@ class Component(ABC, metaclass=SingletonMeta):
         """
         raise NotImplementedError("connect() not implemented by subclass")
 
-    def disconnet(self, **kwargs) -> int:
+    def disconnect(self, **kwargs) -> int:
         """ Disconnects gracefully with component. Function varies by platform (Sim/Hardware) and component type (Camera, Arduino, Sensor, ...) 
             Function is blocking, implementation should specific a timeout parameter to ensure it does not hang.
             Example uses may be: 

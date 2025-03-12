@@ -3,7 +3,7 @@ from .. .Status import Status, Condition
 from .. ..World.SimEnvironment import SimEnvironment
 import pybullet as p
 
-class EnvironmnetSetup(Routine):
+class EnvironmentSetup(Routine):
     """ In the event of a simulated run, creates an environment mananger object, and relevent sim objects (pallet and boxes?) 
 
     Attributes:
@@ -15,7 +15,9 @@ class EnvironmnetSetup(Routine):
 
     def init(self, prev_outputs, parameters = None) -> Status:
         p.connect(p.GUI)
-        SimEnvironment.unlock() # ensures that we can make a new singleton object
+        # We unlock the Singleton Registry to enable instantiation of new singleton object. We then re-lock the registry to prevent other calls to __new__.
+        # The lock condition prevents users from referencing or spawning references to uninitialized components. 
+        SimEnvironment.unlock() 
         self.sim_env = SimEnvironment(time_step=self.time_step)
         SimEnvironment.lock()
         return Status(Condition.Success) 

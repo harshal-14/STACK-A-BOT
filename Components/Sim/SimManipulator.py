@@ -32,7 +32,7 @@ class SimManipulator(Manipulator):
         self.manipulator_ID = p.loadURDF(self.urdf_file,startPos, startOrientation, useFixedBase=1)
         return 0
 
-    def disconnet(self, **kwargs) -> int:
+    def disconnect(self, **kwargs) -> int:
         return 0
 
     def go_to(self, q_array: np.ndarray) -> int:

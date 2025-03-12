@@ -23,7 +23,7 @@ class HwCamera(Camera):
     def connect(self, **kwargs) -> int:
         return 0
 
-    def disconnet(self, **kwargs) -> int:
+    def disconnect(self, **kwargs) -> int:
         return 0
 
     def get_RGB_image(self) -> np.ndarray:

@@ -7,6 +7,7 @@ class SimCamera(Camera):
 
     All Images/data is retrieved from pybullet replica and made available through forward-facing API calls.
     There are native ways to spoof camera data, OR, outputs can be faked all together...\n
+    A good examplpe of using simulated images can be found here https://github.com/bulletphysics/bullet3/blob/master/examples/pybullet/examples/getCameraImageTest.py
     SimCamera is a singleton object and can be refered to via `SingletonRegistry.get_singleton(Camera)`. 
         
     Attributes:
@@ -25,7 +26,7 @@ class SimCamera(Camera):
     def connect(self, **kwargs) -> int:
         return 0
 
-    def disconnet(self, **kwargs) -> int:
+    def disconnect(self, **kwargs) -> int:
         return 0
 
     def get_RGB_image(self) -> np.ndarray:

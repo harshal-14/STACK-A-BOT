@@ -22,7 +22,7 @@ class SimEndEffector(EndEffector):
     def connect(self, **kwargs) -> int:
         return 0
     
-    def disconnet(self, **kwargs) -> int:
+    def disconnect(self, **kwargs) -> int:
         return 0
     
     def get_status(self) -> int:

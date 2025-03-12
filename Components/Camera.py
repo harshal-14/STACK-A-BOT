@@ -27,5 +27,5 @@ class Camera(Component, ABC):
         raise NotImplementedError("get_mono_images() not implemented by subclass")
     
     @abstractmethod
-    def get_depth_data(self): # TODO: What type is returned?
+    def get_depth_data(self): # TODO: Decide Return type..
         raise NotImplementedError("get_depth_data() not implemented by subclass")

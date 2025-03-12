@@ -24,7 +24,7 @@ def main(args:dict):
     """Setup components and environment"""
     initial_routines = []
     if args.mode == 'SIM':
-        initial_routines.append(EnvironmentSetup.EnvironmnetSetup(1e-5))
+        initial_routines.append(EnvironmentSetup.EnvironmentSetup(1e-5))
     initial_routines.append(ComponentBringup.ComponentBringup(args))
 
     """Add all routines that should run during operation"""
