@@ -24,7 +24,7 @@ def main(args:dict):
     """Setup components and environment"""
     initial_routines = []
     if args.mode == 'SIM':
-        initial_routines.append(EnvironmentSetup.EnvironmentSetup(args.URDF_path, 1e-5))
+        initial_routines.append(EnvironmentSetup.EnvironmentSetup(args.URDF_path, 0.42e-3))
     initial_routines.append(ComponentBringup.ComponentBringup(args))
 
     """Add all routines that should run during operation"""
