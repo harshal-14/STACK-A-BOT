@@ -9,7 +9,8 @@ class EnvironmentSetup(Routine):
     Attributes:
         time_step (float): time in seconds between simulation step updates.
     """
-    def __init__(self, time_step: float):
+    def __init__(self, urdf_path: str, time_step: float):
+        self.urdf_path = urdf_path
         self.time_step = time_step # in seconds
         pass
 
@@ -18,7 +19,7 @@ class EnvironmentSetup(Routine):
         # We unlock the Singleton Registry to enable instantiation of new singleton object. We then re-lock the registry to prevent other calls to __new__.
         # The lock condition prevents users from referencing or spawning references to uninitialized components. 
         SimEnvironment.unlock() 
-        self.sim_env = SimEnvironment(time_step=self.time_step)
+        self.sim_env = SimEnvironment(self.urdf_path, time_step=self.time_step)
         SimEnvironment.lock()
         return Status(Condition.Success) 
     

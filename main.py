@@ -24,7 +24,7 @@ def main(args:dict):
     """Setup components and environment"""
     initial_routines = []
     if args.mode == 'SIM':
-        initial_routines.append(EnvironmentSetup.EnvironmentSetup(1e-5))
+        initial_routines.append(EnvironmentSetup.EnvironmentSetup(args.URDF_path, 1e-5))
     initial_routines.append(ComponentBringup.ComponentBringup(args))
 
     """Add all routines that should run during operation"""
@@ -59,8 +59,8 @@ def parse_args():
                                                  Pena, S., Raval, D., 
                                                  Rhodes, J., Virone, A.""")
     parser.add_argument('--mode', type=str, default='SIM', help='Which interface to use. Options: "SIM" (default), "HW"')
-    parser.add_argument('--URDF_file', type=str, default='stack_a_bot/thor_arm_description/urdf/thor_robot.urdf', help="Filepath of the robot's urdf. ")
-    parser.add_argument('--meshes_dir', type=str, default='stack_a_bot/thor_arm_description/meshes/', help="Directory where the robot's mesh files live. Useful for sim or digital twin.")
+    parser.add_argument('--URDF_path', type=str, default='stack_a_bot/World/models/', help="Filepath of the robot's urdf. ")
+    parser.add_argument('--meshes_dir', type=str, default='stack_a_bot/World/models/thor_meshes/', help="Directory where the robot's mesh files live. Useful for sim or digital twin.")
     ## TODO add other args we want in this program...
 
     return parser.parse_args()

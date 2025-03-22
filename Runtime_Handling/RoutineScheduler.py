@@ -44,7 +44,7 @@ class RoutineScheduler():
     def _handle_init(self):
         """runs the init() of the top element in routine_queue. 
             Handles state transition and raises errors if the inproperly implemented"""
-        self._last_status = self._routine_queue[0]._init(self._last_output)
+        self._last_status = self._routine_queue[0].init(self._last_output)
         if self._last_status.cond == Condition.Success:
             self._scheduler_state = SchedulerState.LOOP
 
@@ -60,7 +60,7 @@ class RoutineScheduler():
     def _handle_loop(self):
         """runs the loop() of the top element in routine_queue until status reports successful 
             Handles state transition and raises errors if the inproperly implemented"""
-        self._last_status = self._routine_queue[0]._loop()
+        self._last_status = self._routine_queue[0].loop()
         if self._last_status.cond == Condition.Success:
             self._scheduler_state = SchedulerState.END
             
@@ -75,7 +75,7 @@ class RoutineScheduler():
     def _handle_end(self):
         """runs the end() of the top element in routine_queue. 
             Handles state transition and raises errors if the inproperly implemented"""
-        self._last_status, self._last_output = self._routine_queue[0]._end()
+        self._last_status, self._last_output = self._routine_queue[0].end()
         if self._last_status.cond == Condition.Success:
             self._routine_queue.pop(0)
             self._scheduler_state = SchedulerState.INIT
@@ -94,7 +94,7 @@ class RoutineScheduler():
                 Queue a set of other jobs to fix current situation...
                 raise error in unrecoverable position...
         """
-        self._last_status, self._last_output = self._routine_queue[0]._handle_fault()
+        self._last_status, self._last_output = self._routine_queue[0].handle_fault()
         raise self._last_status.err_type(self._last_status.err_msg)
 
     def run(self):
