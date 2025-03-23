@@ -13,15 +13,16 @@ class SimEnvironment(metaclass=SingletonMeta):
         self.box_IDs = []
 
     def start_enviornment(self):
+        """ADD"""
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
         self.planeID = p.loadURDF("plane.urdf")
-        print("spawning boxes")
         self.spawn_box(0)
         self.spawn_box(1, position=[0.3, -0.1, 0.03])
         p.setGravity(0, 0, -9.81)
         p.setRealTimeSimulation(True)
 
     def spawn_box(self, box_num:int, position: list[float] = [0.3, 0.0, 0.05]):
+        """ADD"""
         box_id = p.loadURDF(self.urdf_path + f"box{box_num}.urdf", basePosition=position)
         self.box_IDs.append(box_id)
 

@@ -1,6 +1,7 @@
 from ..Manipulator import Manipulator 
 import numpy as np
 import pybullet as p
+from ...World.Geometry import Pose, Point 
 
 class SimManipulator(Manipulator):
     """Low-Level Integration of Simulated Manipulator in pybullet
@@ -15,8 +16,8 @@ class SimManipulator(Manipulator):
         urdf_file (str): file_path holding URDF info for the manipulator
         joint_ids (np.ndarray): Joint indices on robot.
     """
-    # TODO: Implement
     def __init__(self, urdf_file:str, meshes_dir:str):
+        super().__init__(urdf_file)
         print("SimManipulator")
         self.manipulator_ID = -1
         self.urdf_file = urdf_file
@@ -35,9 +36,12 @@ class SimManipulator(Manipulator):
     def disconnect(self, **kwargs) -> int:
         return 0
 
-    def go_to(self, q_array: np.ndarray) -> int:
+    def move_js(self, q_array: np.ndarray) -> int:
         p.setJointMotorControlArray(self.manipulator_ID, self.joint_ids, p.POSITION_CONTROL, q_array)
         return 0 #TODO: find a good retval
+    
+    def move_ts(self, pose: Pose | Point) -> int:
+        return super().move_ts(pose)
     
     def stop(self):
         p.setJointMotorControlArray(self.manipulator_ID, self.joint_ids, p.VELOCITY_CONTROL, np.zeros((6,1)))

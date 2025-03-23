@@ -40,13 +40,18 @@ class LinearInterpolationJS(Routine):
             May want to change behavior to check if motion was actually successful...
         """
         # gives us a scalar value from [0,1] defining where along the path we should be aiming to go. 
-        time_delta = (time.time_ns() - self.init_time) / (self.travel_time * S_TO_NS) 
+        time_delta = (time.time_ns() - self.init_time) / (self.travel_time * S_TO_NS)
+        cur_q = self.manip_ref.get_joint_values()
+        fk_output = self.manip_ref.FK_Solver(cur_q)
+        ik_output = self.manip_ref.IK_Solver(fk_output)
+        np.set_printoptions(precision=3, suppress=True) # just for this print
+        print(f"joint_pose: {cur_q.reshape((6,))},\nik_output: {ik_output}")
         if time_delta > 1.0:
             return Status(Condition.Success)
 
         q_diff = self.dst_q - self.init_q
         target_q = q_diff * time_delta + self.init_q
-        self.manip_ref.go_to(target_q)
+        self.manip_ref.move_js(target_q)
 
         return Status(Condition.In_Progress)
     

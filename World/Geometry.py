@@ -13,6 +13,7 @@
             ...    
 """  
 import numpy as np
+from ..Utilities import type_checker, size_checker
 
 class RotMatrix():
     def __init__(self, rot):
@@ -45,6 +46,13 @@ class Pose():
             self.trans = trans.to_trans()
         else:
             self.trans = trans
+
+    @classmethod
+    def from_t(cls, t_matrix: np.ndarray) -> "Pose":
+        """ADD"""
+        type_checker([t_matrix],[[np.ndarray]])
+        size_checker([t_matrix], [[(4,4)]])
+        return cls(t_matrix[0:3, 0:3], t_matrix[0:3, 3])
 
     def get_transform(self):
         return np.vstack((np.hstack((self.rot, self.trans)), np.array([0,0,0,1])))
