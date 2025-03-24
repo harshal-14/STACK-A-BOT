@@ -11,8 +11,8 @@ rot = RotMatrix(np.random.rand(3,3))
 trans = Point(np.random.rand(3,1))
 
 pose = Pose(rot,trans)
-print(pose.rot)
-print(pose.trans)
-print(np.hstack((pose.rot, pose.trans)))
+print(pose.orientation)
+print(pose.point)
+print(np.hstack((pose.orientation, pose.point)))
 
 print(pose.get_transform())

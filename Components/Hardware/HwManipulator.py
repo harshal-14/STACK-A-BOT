@@ -27,11 +27,11 @@ class HwManipulator(Manipulator):
     def disconnect(self, **kwargs) -> int:
         return 0
 
-    def move_js(self, q_array: np.ndarray) -> int:
-        return 0
+    def move_js(self, q_array: np.ndarray):
+        pass
 
-    def move_ts(self, pose:Pose | Point) -> int:
-        return 0
+    def move_ts(self, pose:Pose | Point):
+        pass
     
     def get_joint_values(self) -> np.ndarray:
         return np.zeros((1))

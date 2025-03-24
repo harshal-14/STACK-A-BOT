@@ -1,6 +1,7 @@
 from ..Components.SingletonRegistry import SingletonMeta
 import pybullet as p
 import pybullet_data
+import numpy as np
 
 #TODO: @Chirag @Harshal @Raval, Someone with better pybullet knowledge pls fill in this Routine... this is my best guess as to what we need
 
@@ -13,7 +14,7 @@ class SimEnvironment(metaclass=SingletonMeta):
         self.box_IDs = []
 
     def start_enviornment(self):
-        """ADD"""
+        """ Sets up pybullet simulator by setting parameters and spawning objects."""
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
         self.planeID = p.loadURDF("plane.urdf")
         self.spawn_box(0)
@@ -21,8 +22,12 @@ class SimEnvironment(metaclass=SingletonMeta):
         p.setGravity(0, 0, -9.81)
         p.setRealTimeSimulation(True)
 
-    def spawn_box(self, box_num:int, position: list[float] = [0.3, 0.0, 0.05]):
-        """ADD"""
+    def spawn_box(self, box_num:int, position: list[float] | np.ndarray = [0.3, 0.0, 0.05]):
+        """ Puts a box w/ shape given by the index at a given position in the sim environment
+            Args:
+                box_num (int): an integer from 0-X. Each box urdf has a different shape.
+                position (list | np.ndarray): Position in R^3 for box. 
+        """
         box_id = p.loadURDF(self.urdf_path + f"box{box_num}.urdf", basePosition=position)
         self.box_IDs.append(box_id)
 

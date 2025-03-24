@@ -2,6 +2,7 @@ from ..Manipulator import Manipulator
 import numpy as np
 import pybullet as p
 from ...World.Geometry import Pose, Point 
+from ...Utilities import joint_array_sanitizer
 
 class SimManipulator(Manipulator):
     """Low-Level Integration of Simulated Manipulator in pybullet
@@ -36,12 +37,24 @@ class SimManipulator(Manipulator):
     def disconnect(self, **kwargs) -> int:
         return 0
 
-    def move_js(self, q_array: np.ndarray) -> int:
-        p.setJointMotorControlArray(self.manipulator_ID, self.joint_ids, p.POSITION_CONTROL, q_array)
-        return 0 #TODO: find a good retval
+    def move_js(self, q_array: np.ndarray | list):
+        """ Commands a movement in joint-space via pybullet call `setJointMotorControlArray`. 
+            Positional control is used by default, which runs a PD controller under the hood.  
+            Args:
+                q_array (np.ndarray | list): Array of six joint values in radians representing the target position to go to. 
+            Returns:
+                status (int): Returning 0 indicates a success, and any non-zero value indicates a failure. 
+        """
+        qs = joint_array_sanitizer(q_array)
+        p.setJointMotorControlArray(self.manipulator_ID, self.joint_ids, p.POSITION_CONTROL, qs)
     
-    def move_ts(self, pose: Pose | Point) -> int:
-        return super().move_ts(pose)
+    def move_ts(self, pose: Pose | Point):
+        """ Commands a movement in task-space by utilzing IK solver and then `move_js`
+            Args:
+                pose (Pose | Point): Target end-effector position in R^3 
+        """
+        self.move_js(self.IK_Solver(pose))
+        pass
     
     def stop(self):
         p.setJointMotorControlArray(self.manipulator_ID, self.joint_ids, p.VELOCITY_CONTROL, np.zeros((6,1)))
@@ -49,5 +62,13 @@ class SimManipulator(Manipulator):
     def get_joint_values(self) -> np.ndarray:
         joint_states = p.getJointStates(self.manipulator_ID, self.joint_ids)
         joint_positions = [state[0] for state in joint_states]
-        joint_velocities = [state[1] for state in joint_states]
+        # joint_velocities = [state[1] for state in joint_states]
         return np.array(joint_positions, dtype=np.float32).reshape(6,1)
+    
+    def _get_ee(self) -> np.ndarray:
+        """ THIS Method is for TESTING PURPOSES ONLY.
+            Returns:
+                link_state (np.ndarray): the end-effector position in cartesian space.
+        """
+        link_state = p.getLinkState(self.manipulator_ID, 5)
+        return np.array(link_state[0])

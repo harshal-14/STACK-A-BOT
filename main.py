@@ -17,8 +17,10 @@ import numpy as np
 
 from .Components.SingletonRegistry import * # very important line
 from .Runtime_Handling import RoutineScheduler
-from .Runtime_Handling.Routines.Manipulation import ComponentBringup, LinearInterpolationJS, ComponentShutdown
+from .Runtime_Handling.Routines.Manipulation import ComponentBringup, ComponentShutdown, LinearInterpolationJS, LinearInterpolationTS
 from .Runtime_Handling.Routines.Perception import EnvironmentSetup
+from .World.Geometry import Pose
+from scipy.spatial.transform import Rotation as R
 
 def main(args:dict):
     """Setup components and environment"""
@@ -29,8 +31,9 @@ def main(args:dict):
 
     """Add all routines that should run during operation"""
     home_q = np.array([[0], [0], [-np.pi/2], [0], [0], [0]])
-    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(home_q, 5))
-
+    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(home_q, 0.5))
+    rand_ee_point = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [.3, 0, 0.2]) 
+    initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(rand_ee_point, 2))
     scheduler = RoutineScheduler.RoutineScheduler(initial_routines)
     while(scheduler.has_routines()):
         scheduler.run()
