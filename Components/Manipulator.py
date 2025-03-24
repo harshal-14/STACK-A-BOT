@@ -81,11 +81,10 @@ class Manipulator(Component, ABC):
         """
         type_checker([ee_pose], [[Pose, Point]])
         if type(ee_pose) == Point:
+            ee_pose = Pose(None, ee_pose)
             target_position = ee_pose.to_np()
             target_orientation = None
-        else:
-            target_position = ee_pose.point.to_np()
-            target_orientation = ee_pose.orientation.to_np()
-        qs = self.chain.inverse_kinematics(target_position.flatten()) # target_orientation
-        # qs = ikpy.inverse_kinematics.inverse_kinematic_optimization(self.chain, ee_pose.get_transform(), [0] * 6)
+        # init_pose = self.FK_Solver()
+        # qs = self.chain.inverse_kinematics(target_position.flatten()) # target_orientation
+        qs = ikpy.inverse_kinematics.inverse_kinematic_optimization(self.chain, ee_pose.get_transform(), self.get_joint_values().flatten())
         return np.array(qs)
