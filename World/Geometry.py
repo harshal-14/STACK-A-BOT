@@ -19,8 +19,6 @@ from ..Utilities import type_checker, size_checker
 # Riley - add details, type translations
 class RotMatrix():
     def __init__(self, rot: np.ndarray):
-        if rot is None:
-            self.rot = None 
         type_checker([rot], [[np.ndarray]])
         size_checker([rot], [[(1,3,3), (3,3)]])
         if rot.shape == (1,3,3):

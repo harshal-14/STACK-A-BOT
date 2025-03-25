@@ -30,9 +30,16 @@ def main(args:dict):
     initial_routines.append(ComponentBringup.ComponentBringup(args))
 
     """Add all routines that should run during operation"""
-    home_q = np.array([[0], [0], [-np.pi/2], [0], [0], [0]])
-    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(home_q, 0.5))
-    rand_ee_point = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [.3, 0, 0.2]) 
+    home_q = np.array([[0], [0], [-np.pi/2], [0], [-np.pi/4], [0]])
+    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(home_q, 2.5))
+    # initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[-np.pi/2], [0], [0], [0], [0], [0]]), 2.5))
+    # initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [-np.pi/2], [0], [0], [0], [0]]), 2.5))
+    # initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [-np.pi/2], [0], [0], [0]]), 2.5))
+    # initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [0], [-np.pi/2], [0], [0]]), 2.5))
+    # initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [0], [0], [-np.pi/2], [0]]), 2.5))
+    # initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [-np.pi/2]]), 2.5))
+    # rand_ee_point = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [.2, 0, 0.366]) 
+    rand_ee_point = Pose(np.array([[0, 0.678, 0.735], [1, 0, 0], [0, 0.735, -.678]]), [.2, 0, 0.366]) 
     initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(rand_ee_point, 2))
     scheduler = RoutineScheduler.RoutineScheduler(initial_routines)
     while(scheduler.has_routines()):

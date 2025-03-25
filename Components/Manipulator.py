@@ -1,12 +1,14 @@
 from abc import ABC, abstractmethod
 
-import ikpy.chain
-import ikpy.inverse_kinematics
+from mr_urdf_loader import loadURDF
+from modern_robotics import FKinBody, FKinSpace, IKinBody, IKinSpace, JacobianSpace, JacobianBody
+
 from .Component import Component
 import numpy as np
 from ..World.Geometry import Pose, Point
-import ikpy
 from ..Utilities import joint_array_sanitizer, type_checker
+
+np.set_printoptions(precision=3, suppress=True) 
 
 class Manipulator(Component, ABC):
     """ Abstract representation of a robotic manipulator. 
@@ -19,7 +21,18 @@ class Manipulator(Component, ABC):
             Args:
                 urdf_file (str): relative file path of manipulator URDF file 
         """
-        self.chain = ikpy.chain.Chain.from_urdf_file(urdf_file, base_elements=["art1"])
+        MR=loadURDF(urdf_file)
+        # print(MR)
+        self.M  = MR["M"]
+        self.Slist  = MR["Slist"]
+        self.Mlist  = MR["Mlist"]
+        self.Glist  = MR["Glist"]
+        self.Blist  = MR["Blist"]
+        # print(M)
+        # print(Slist)
+        # print(Mlist)
+        # print(Glist)
+        # print(Blist)
     
     # TODO: Manipulation team: Define all behavior here, and implement the methods in both Hw and Sim impls. 
     @abstractmethod
@@ -65,10 +78,14 @@ class Manipulator(Component, ABC):
                 ee_pose (Pose): pose of the end effector.
         """
         qs = joint_array_sanitizer(q_array)
-        t_mat = self.chain.forward_kinematics(list(qs))  
+        t_mat = FKinSpace(self.M, self.Slist, qs)
+        t_mat2 = FKinBody(self.M, self.Blist, qs)
+        # print(f"t_mat from space:\n{t_mat},\nt_mat from body:\n{t_mat2}")
         return Pose.from_t(t_mat)
 
-    def IK_Solver(self, ee_pose: Pose | Point) -> np.ndarray:
+
+    # 
+    def IK_Solver(self, ee_pose: Pose, init_q_list: np.ndarray | None = None) -> np.ndarray:
         """ Solves for the set of joint angles at a given end effector pose.
         The `ee_pose` must be of the following construction:
             * ee_pose.rotation & ee_pose.translation are in reference to the base frame of the Manipuator. 
@@ -76,15 +93,23 @@ class Manipulator(Component, ABC):
             * ee_pose 
             Args:
                 ee_pose (Pose | Point): pose of end_effector to solve for. 
+                init ADD
             Returns:
                 q_array (np.ndarray): Array of six joint values in radians representing the manip position at a given ee_pose.
         """
-        type_checker([ee_pose], [[Pose, Point]])
-        if type(ee_pose) == Point:
-            ee_pose = Pose(None, ee_pose)
-            target_position = ee_pose.to_np()
-            target_orientation = None
-        # init_pose = self.FK_Solver()
-        # qs = self.chain.inverse_kinematics(target_position.flatten()) # target_orientation
-        qs = ikpy.inverse_kinematics.inverse_kinematic_optimization(self.chain, ee_pose.get_transform(), self.get_joint_values().flatten())
+        type_checker([ee_pose, init_q_list], [[Pose], [np.ndarray, type(None)]])
+        if not init_q_list:
+            init_q_list = self.get_joint_values()
+        jB = np.linalg.det(JacobianBody(self.Blist, init_q_list))
+        jS = np.linalg.det(JacobianSpace(self.Blist, init_q_list))
+
+        # print(f"body Jac det: {jB}, space Jac det: {jS}")s
+        qs, success = IKinBody(self.Blist, self.M, ee_pose.get_transform(),init_q_list, 0.1, 0.01)
+        qs_2, success_2 = IKinSpace(self.Slist, self.M, ee_pose.get_transform(),init_q_list, 0.1, 0.01)
+        # print(f"qs from space:\n{qs},\nqs from body:\n{qs_2}")
+        if not success:
+            print("WARNING: IKinBody returned unsuccessful result")
+        if not success_2:
+            print("WARNING: IKinSpace returned unsuccessful result")
+
         return np.array(qs)

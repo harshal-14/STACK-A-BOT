@@ -7,7 +7,7 @@
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="package://World/models/thor_meshes/base.stl" scale="0.001 0.001 0.001" />
+          <mesh filename="thor_meshes/base.stl" scale="0.001 0.001 0.001" />
         </geometry>
         <material name="base">
           <color rgba="0.0 0.0 0.0 1.0"/> 
@@ -31,7 +31,7 @@
       <visual>
 	      <origin xyz="0 0 0" rpy="0 0 0" />
 	      <geometry>
-	        <mesh filename="package://World/models/thor_meshes/art1.stl" scale="0.001 0.001 0.001" />
+	        <mesh filename="thor_meshes/art1.stl" scale="0.001 0.001 0.001" />
 	      </geometry>
 	      <material name="red">
           <color rgba="1.0 0.0 0.0 1.0"/> 
@@ -55,7 +55,7 @@
       <visual>
 	      <origin xyz="0 0 0" rpy="0 0 0" />
 	      <geometry>
-	        <mesh filename="package://World/models/thor_meshes/art2.stl" scale="0.001 0.001 0.001" />
+	        <mesh filename="thor_meshes/art2.stl" scale="0.001 0.001 0.001" />
 	      </geometry>
 	      <material name="black">
           <color rgba="0.0 0.0 0.0 1.0"/> 
@@ -79,7 +79,7 @@
       <visual>
 	      <origin xyz="0 0 0" rpy="0 0 0" />
 	      <geometry>
-	        <mesh filename="package://World/models/thor_meshes/art3.stl" scale="0.001 0.001 0.001" />
+	        <mesh filename="thor_meshes/art3.stl" scale="0.001 0.001 0.001" />
 	      </geometry>
 	      <material name="red"/>
       </visual>
@@ -101,7 +101,7 @@
       <visual>
 	      <origin xyz="0 0 0" rpy="0 0 0" />
 	      <geometry>
-	        <mesh filename="package://World/models/thor_meshes/art4.stl" scale="0.001 0.001 0.001" />
+	        <mesh filename="thor_meshes/art4.stl" scale="0.001 0.001 0.001" />
 	      </geometry>
 	      <material name="red2">
           <color rgba="0.85 0.0 0.0 1.0"/>
@@ -125,7 +125,7 @@
       <visual>
 	      <origin xyz="0 0 0" rpy="0 0 0" />
 	      <geometry>
-	        <mesh filename="package://World/models/thor_meshes/art5.stl" scale="0.001 0.001 0.001" />
+	        <mesh filename="thor_meshes/art5.stl" scale="0.001 0.001 0.001" />
 	      </geometry>
 	      <material name="black"/>
       </visual>
@@ -147,7 +147,7 @@
       <visual>
 	      <origin xyz="0 0 0" rpy="0 0 0" />
 	      <geometry>
-	        <mesh filename="package://World/models/thor_meshes/art6.stl" scale="0.001 0.001 0.001" />
+	        <mesh filename="thor_meshes/art6.stl" scale="0.001 0.001 0.001" />
 	      </geometry>
 	      <material name="black"/>
       </visual>
