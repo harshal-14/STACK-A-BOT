@@ -14,6 +14,8 @@ Add actual docustring to this...
 
 import argparse
 import numpy as np
+import sys
+import os
 
 from .Components.SingletonRegistry import * # very important line
 from .Runtime_Handling import RoutineScheduler
@@ -61,7 +63,14 @@ def parse_args():
     parser.add_argument('--mode', type=str, default='SIM', help='Which interface to use. Options: "SIM" (default), "HW"')
     parser.add_argument('--URDF_file', type=str, default='stack_a_bot/thor_arm_description/urdf/thor_robot.urdf', help="Filepath of the robot's urdf. ")
     parser.add_argument('--meshes_dir', type=str, default='stack_a_bot/thor_arm_description/meshes/', help="Directory where the robot's mesh files live. Useful for sim or digital twin.")
-    ## TODO add other args we want in this program...
+    
+    # Add DUSt3R and VoxelGrid arguments, to be later on used for the perception system
+    parser.add_argument('--use_dust3r', action='store_true', help="Whether to use DUSt3R for perception")
+    parser.add_argument('--num_angles', type=int, default=4, help="Number of angles for DUSt3R perception")
+    parser.add_argument('--model', type=str, default='dust3r_v1', help="Model name for DUSt3R")
+    parser.add_argument('--output_dir', type=str, default='./output', help="Directory to save outputs")
+    parser.add_argument('--use_voxel_grid', action='store_true', help="Whether to use VoxelGrid for perception")
+    parser.add_argument('--voxel_size', type=float, default=0.01, help="Voxel size for VoxelGrid")
 
     return parser.parse_args()
 

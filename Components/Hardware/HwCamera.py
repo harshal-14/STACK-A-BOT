@@ -148,7 +148,7 @@ class HwCamera(Camera):
             raise RuntimeError("Camera not connected or RGB queue not initialized.")
         
         rgb_data = self.rgb_queue.get()
-        rgb_frame = rgb_data.getRaw().reshape((rgb_data.getHeight(), rgb_data.getWidth(), 3))
+        rgb_frame = np.array(rgb_data.getData()).reshape((rgb_data.getHeight(), rgb_data.getWidth(), 3))
         
         rgb_frame = rgb_frame.astype(np.float32) / 255.0 # Normalize to [0, 1]
         rgb_frame = np.transpose(rgb_frame, (2, 0, 1)) # Change to CHW format
@@ -167,8 +167,8 @@ class HwCamera(Camera):
         left_data = self.left_queue.get()
         right_data = self.right_queue.get()
         
-        left_frame = left_data.getRaw().reshape((left_data.getHeight(), left_data.getWidth()))
-        right_frame = right_data.getRaw().reshape((right_data.getHeight(), right_data.getWidth()))
+        left_frame = np.array(left_data.getData()).reshape((left_data.getHeight(), left_data.getWidth()))
+        right_frame = np.array(right_data.getData()).reshape((right_data.getHeight(), right_data.getWidth()))
         
         left_frame = left_frame.astype(np.float32) / 255.0 # Normalize to [0, 1]
         right_frame = right_frame.astype(np.float32) / 255.0 # Normalize to [0, 1]
@@ -185,27 +185,34 @@ class HwCamera(Camera):
             depth(np.ndarray): a 1xHxW float32 ndarray with depth information.
         """
         depth_data = self.depth_queue.get()
-        depth_frame = depth_data.getRaw().reshape((depth_data.getHeight(), depth_data.getWidth()))
-
-        depth_map = (depth_frame.astype(np.float32) / 1000.0)
-
+        
+        # Get raw data as numpy array
+        raw_data = np.array(depth_data.getData(), dtype=np.uint8)
+        
+        # For 16-bit depth data (2 bytes per pixel)
+        # Use frombuffer to correctly interpret 16-bit values
+        depth_frame = np.frombuffer(raw_data, dtype=np.uint16)
+        
+        # Try to reshape to the expected dimensions
+        try:
+            depth_frame = depth_frame.reshape((depth_data.getHeight(), depth_data.getWidth()))
+        except ValueError:
+            # If that fails, calculate dimensions based on array size
+            total_pixels = len(depth_frame)
+            width = depth_data.getWidth()
+            height = total_pixels // width
+            depth_frame = depth_frame.reshape((height, width))
+        
+        # Convert to meters
+        depth_map = depth_frame.astype(np.float32) / 1000.0
+        
+        # Add channel dimension (CHW format)
         depth_map = np.expand_dims(depth_map, axis=0)
         
         return depth_map
-    
-    def capture_images_interactive(self, num_angles=4, output_dir='.'):
-        """Capture images from OAK-D Lite interactively.
-        
-        This method is adapted from dust3r_module.py for capturing multiple views
-        for 3D reconstruction.
-        
-        Args:
-            num_angles (int): Number of different angles to capture
-            output_dir (str): Directory to save the captured images
             
-        Returns:
-            list: Paths to the captured images
-        """
+    def capture_images_interactive(self, num_angles=4, output_dir='.'):
+        """Capture images from OAK-D Lite using the existing camera connection."""
         if not self.device or not self.rgb_queue:
             raise RuntimeError("Camera not connected")
         
@@ -221,38 +228,58 @@ class HwCamera(Camera):
             print(f"\nWe'll capture {num_angles} different views of your scene.")
             print("For best results, move around the object between captures to get different angles.")
             
+            # Clean up any existing windows
+            cv2.destroyAllWindows()
+            
+            # Create a single window
+            window_name = "Camera Preview"
+            cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+            cv2.resizeWindow(window_name, 640, 480)
+            
             for angle in range(num_angles):
                 print(f"\n=== Preparing to capture angle {angle+1}/{num_angles} ===")
                 print("Live preview started. Position the camera for a good view.")
                 print("Press 'c' when ready to capture, or 'q' to quit.")
                 
                 while True:
-                    # Get frame
+                    # Get the latest frame using the existing queue
                     rgb_data = self.rgb_queue.get()
-                    rgb_frame = rgb_data.getRaw().reshape((rgb_data.getHeight(), rgb_data.getWidth(), 3))
                     
-                    # Display preview
-                    preview = cv2.resize(rgb_frame, (640, 360))
+                    # Use the built-in method to get a proper CV frame
+                    rgb_frame = rgb_data.getCvFrame()
+                    
+                    # Add instruction text
+                    preview = rgb_frame.copy()
                     cv2.putText(preview, f"Angle {angle+1}/{num_angles} - Press 'c' to capture", 
                                 (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
                     
-                    cv2.imshow("Preview - Position camera and press 'c' to capture", preview)
-                    key = cv2.waitKey(1)
+                    # Show preview
+                    cv2.imshow(window_name, preview)
+                    key = cv2.waitKey(1) & 0xFF
                     
                     if key == ord('c'):
-                        # Capture RGB frame
+                        # Get a fresh frame
                         rgb_data = self.rgb_queue.get()
-                        rgb_frame = rgb_data.getRaw().reshape((rgb_data.getHeight(), rgb_data.getWidth(), 3))
+                        rgb_frame = rgb_data.getCvFrame()
                         
-                        # Save the image
+                        # Save image
                         image_path = os.path.join(session_dir, f"view{angle+1:02d}.jpg")
                         cv2.imwrite(image_path, rgb_frame)
                         image_paths.append(image_path)
                         
-                        # Show captured image with confirmation
-                        cv2.putText(rgb_frame, "CAPTURED", (50, 50), 
+                        # Verify image dimensions
+                        saved_img = cv2.imread(image_path)
+                        if saved_img is not None:
+                            print(f"Saved image to {image_path}")
+                            print(f"Image dimensions: {saved_img.shape}")
+                        else:
+                            print(f"Warning: Failed to verify saved image at {image_path}")
+                        
+                        # Show confirmation
+                        confirm = rgb_frame.copy()
+                        cv2.putText(confirm, "CAPTURED", (50, 50), 
                                     cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 255, 0), 3)
-                        cv2.imshow("Captured Image", rgb_frame)
+                        cv2.imshow(window_name, confirm)
                         cv2.waitKey(1000)
                         break
                         
@@ -263,12 +290,12 @@ class HwCamera(Camera):
             
             cv2.destroyAllWindows()
             print(f"\nSuccessfully captured {len(image_paths)} angles!")
-            
+        
         except Exception as e:
             print(f"Error during image capture: {str(e)}")
             import traceback
             traceback.print_exc()
+            cv2.destroyAllWindows()
             return []
-            
-        return image_paths
         
+        return image_paths
