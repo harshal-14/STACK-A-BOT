@@ -28,7 +28,8 @@ class Manipulator(Component, ABC):
         self.Mlist  = MR["Mlist"]
         self.Glist  = MR["Glist"]
         self.Blist  = MR["Blist"]
-        # print(M)
+        # print(self.M)
+        # exit(1)
         # print(Slist)
         # print(Mlist)
         # print(Glist)
@@ -99,17 +100,28 @@ class Manipulator(Component, ABC):
         """
         type_checker([ee_pose, init_q_list], [[Pose], [np.ndarray, type(None)]])
         if not init_q_list:
-            init_q_list = self.get_joint_values()
+            init_q_list = self.get_joint_values().flatten()
+        qs_zero = np.zeros((6))
         jB = np.linalg.det(JacobianBody(self.Blist, init_q_list))
         jS = np.linalg.det(JacobianSpace(self.Blist, init_q_list))
 
         # print(f"body Jac det: {jB}, space Jac det: {jS}")s
-        qs, success = IKinBody(self.Blist, self.M, ee_pose.get_transform(),init_q_list, 0.1, 0.01)
-        qs_2, success_2 = IKinSpace(self.Slist, self.M, ee_pose.get_transform(),init_q_list, 0.1, 0.01)
-        # print(f"qs from space:\n{qs},\nqs from body:\n{qs_2}")
-        if not success:
-            print("WARNING: IKinBody returned unsuccessful result")
-        if not success_2:
-            print("WARNING: IKinSpace returned unsuccessful result")
+        qs,    suc = IKinBody( self.Blist, self.M, ee_pose.get_transform(), init_q_list, 0.01, 0.001)
+        qs_2, suc2 = IKinSpace(self.Slist, self.M, ee_pose.get_transform(), init_q_list, 0.01, 0.001)
+        qs_3, suc3 = IKinBody( self.Blist, self.M, ee_pose.get_transform(),     qs_zero, 0.01, 0.001)
+        qs_4, suc4 = IKinSpace(self.Slist, self.M, ee_pose.get_transform(),     qs_zero, 0.01, 0.001)
 
-        return np.array(qs)
+        if suc:
+            q_final = qs
+        elif suc2:
+            q_final = qs_2
+        elif suc3:
+            q_final = qs_3
+        elif suc4:
+            q_final = qs_4
+        else:
+            raise RuntimeError("Inverse Kinematics Failed")
+        # print(f"qs from space:\n{qs},\nqs from body:\n{qs_2}")
+        # print(f"IK statuses [{qs}, {suc},\n {qs_2}, {suc2},\n  {qs_3}, {suc3},\n {qs_4}, {suc4},\n]")
+
+        return np.array(q_final)

@@ -3,6 +3,7 @@
 import typing
 import numpy as np
 from scipy.spatial.transform import Rotation as R
+import math
 
 """Time conversions"""
 NS_TO_MS = 1e-6
@@ -69,12 +70,28 @@ def joint_array_sanitizer(input: np.ndarray | list) -> np.ndarray:
 
 def inverse_quaternion(quat: np.ndarray) -> np.ndarray:
     # not a very smart method,
-    return R.from_quat(quat).inv().as_quat()
+    return R.from_quat(quat, scalar_first=True).inv().as_quat(scalar_first=True)
 
 def multiply_quaternion(q_0: np.ndarray, q_1: np.ndarray) -> np.ndarray:
-    q_r_3 = q_1[3] * q_0[3] - q_1[0] * q_0[0] - q_1[1] * q_0[1] - q_1[2] * q_0[2]
-    q_r_0 = q_1[3] * q_0[0] - q_1[0] * q_0[3] - q_1[1] * q_0[2] - q_1[2] * q_0[1]
-    q_r_1 = q_1[3] * q_0[1] - q_1[0] * q_0[2] - q_1[1] * q_0[3] - q_1[2] * q_0[0]
-    q_r_2 = q_1[3] * q_0[2] - q_1[0] * q_0[1] - q_1[1] * q_0[0] - q_1[2] * q_0[3]
+    q_r_0 = q_0[0]*q_1[0] - q_0[1]*q_1[1] - q_0[2]*q_1[2] - q_0[3]*q_1[3]
+    q_r_1 = q_0[0]*q_1[1] + q_0[1]*q_1[0] + q_0[2]*q_1[3] - q_0[3]*q_1[2]
+    q_r_2 = q_0[0]*q_1[2] - q_0[1]*q_1[3] + q_0[2]*q_1[0] + q_0[3]*q_1[1]
+    q_r_3 = q_0[0]*q_1[3] + q_0[1]*q_1[2] - q_0[2]*q_1[1] + q_0[3]*q_1[0]
 
     return np.array([float(q_r_0),float(q_r_1),float(q_r_2),float(q_r_3)])
+
+def polar_decomp_quaternion(quat) -> tuple[float, np.ndarray]:
+    # a = ||quat|| * cos(phi) -> phi = cos^-1(q / ||quat||)
+    # n_hat = v / ||v||
+    phi = math.acos(quat[0] / np.linalg.norm(quat))
+    phi2 = math.asin(np.linalg.norm(quat[1:]) / np.linalg.norm(quat))
+    # phi2 == phi AFAIK
+    n_hat = quat[1:] / np.linalg.norm(quat[1:])
+    return phi, n_hat
+
+def exponentiate_quaternion(quat: np.ndarray, exponent: float) -> np.ndarray:
+    # ||quat||^exponent * (cos(exponent*phi) + n_hat * sin(exponent*phi))
+    phi, n_hat = polar_decomp_quaternion(quat)
+    a = np.linalg.norm(quat) ** exponent * math.cos(exponent*phi)
+    v = np.linalg.norm(quat) ** exponent * n_hat * math.sin(exponent*phi)
+    return np.concatenate((np.array([a]), v))

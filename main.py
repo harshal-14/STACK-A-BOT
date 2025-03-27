@@ -2,16 +2,6 @@
 Add actual docustring to this...
 """
 
-"""Riley Todo List for this branch:
-    Active Items:
-        * create demo behavior
-            * spawn box somewhere....
-            * move lin interpolate to box
-            * implement ending routines for clean shutdown
-        * Figure out immediate action items as a team
-        * Implement pytest behavior?
-"""
-
 import argparse
 import numpy as np
 
@@ -26,20 +16,27 @@ def main(args:dict):
     """Setup components and environment"""
     initial_routines = []
     if args.mode == 'SIM':
-        initial_routines.append(EnvironmentSetup.EnvironmentSetup(args.URDF_path, 0.42e-3))
+        initial_routines.append(EnvironmentSetup.EnvironmentSetup(args.URDF_path))
     initial_routines.append(ComponentBringup.ComponentBringup(args))
 
     """Add all routines that should run during operation"""
     home_q = np.array([[0], [0], [-np.pi/2], [0], [-np.pi/4], [0]])
+    rand_ee_point  = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [0.3,  0.0, 0.2]) 
+    rand_ee_point2 = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [0.0,  0.3, 0.2]) 
+    rand_ee_point3 = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [-0.3, 0.0, 0.2])
+    # movements in JS
+    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[-np.pi/2], [0], [0], [0], [0], [0]]), 2.5))
+    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [-np.pi/2], [0], [0], [0], [0]]), 2.5))
+    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [-np.pi/2], [0], [0], [0]]), 2.5))
+    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [0], [-np.pi/2], [0], [0]]), 2.5))
+    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [0], [0], [-np.pi/2], [0]]), 2.5))
+    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [-np.pi/2]]), 2.5))
     initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(home_q, 2.5))
-    # initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[-np.pi/2], [0], [0], [0], [0], [0]]), 2.5))
-    # initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [-np.pi/2], [0], [0], [0], [0]]), 2.5))
-    # initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [-np.pi/2], [0], [0], [0]]), 2.5))
-    # initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [0], [-np.pi/2], [0], [0]]), 2.5))
-    # initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [0], [0], [-np.pi/2], [0]]), 2.5))
-    # initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [-np.pi/2]]), 2.5))
-    # rand_ee_point = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [.2, 0, 0.366]) 
-    rand_ee_point = Pose(np.array([[0, 0.678, 0.735], [1, 0, 0], [0, 0.735, -.678]]), [.2, 0, 0.366]) 
+    # movements in TS
+    initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(rand_ee_point, 2))
+    initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(rand_ee_point2, 2))
+    initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(rand_ee_point3, 2))
+    initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(rand_ee_point2, 2))
     initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(rand_ee_point, 2))
     scheduler = RoutineScheduler.RoutineScheduler(initial_routines)
     while(scheduler.has_routines()):

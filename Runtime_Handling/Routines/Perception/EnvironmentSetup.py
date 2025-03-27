@@ -9,7 +9,7 @@ class EnvironmentSetup(Routine):
     Attributes:
         time_step (float): time in seconds between simulation step updates.
     """
-    def __init__(self, urdf_path: str, time_step: float):
+    def __init__(self, urdf_path: str, time_step: float = None):
         self.urdf_path = urdf_path
         self.time_step = time_step # in seconds
         pass

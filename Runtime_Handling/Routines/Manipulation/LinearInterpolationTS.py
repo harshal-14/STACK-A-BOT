@@ -1,7 +1,7 @@
 import numpy as np
 import time
 
-from .. ..Utilities import S_TO_NS, inverse_quaternion, multiply_quaternion
+from .. ..Utilities import S_TO_NS, inverse_quaternion, multiply_quaternion, exponentiate_quaternion
 from ..Routine import Routine
 from ...Status import Status, Condition
 from ....Components.SingletonRegistry import get_singleton
@@ -40,14 +40,13 @@ class LinearInterpolationTS(Routine):
         """Linearly interpolates target position based on current time. Returns Success once we have traveled for travel_time seconds.
             May want to change behavior to check if motion was actually successful...
         """
-        # gives us a scalar value from [0,1] defining where along the path we should be aiming to go. 
+        # Scalar value from [0,1] rep. distance along path. 
         time_delta = (time.time_ns() - self.init_time) / (self.travel_time * S_TO_NS)
         cur_q = self.manip_ref.get_joint_values()
         fk_output = self.manip_ref.FK_Solver(cur_q)
         ik_output = self.manip_ref.IK_Solver(fk_output)
-        np.set_printoptions(precision=3, suppress=True) # just for this print
-        # print(f"joint_pose: {cur_q.reshape((6,))},\nik_output: {ik_output}")
-        print(self.manip_ref._get_ee())
+        # np.set_printoptions(precision=3, suppress=True) # just for this print
+        # print(self.manip_ref._get_ee())
         if time_delta > 1.0:
             return Status(Condition.Success)
         
@@ -55,12 +54,14 @@ class LinearInterpolationTS(Routine):
         target_point = point_different * time_delta + self.init_pose.point.to_np()
 
         q_1 = self.init_pose.orientation.to_quat()
-        # print(q_1)
-        # print(inverse_quaternion(q_1.reshape((4,))))
         q_2 = self.dst_pose.orientation.to_quat()
-        
+
+        q_inv = inverse_quaternion(q_1)
+        a = multiply_quaternion(q_2, q_inv)
+        b = exponentiate_quaternion(a, time_delta)
         # SLERP - spherical linear interpolation - of the rotation matrix.
-        target_quat = multiply_quaternion(multiply_quaternion(q_2, inverse_quaternion(q_1)) ** time_delta, q_1)
+        target_quat = multiply_quaternion(b, q_1)
+        
         # print(target_quat)
         target_rot = RotMatrix.from_quat(target_quat)
         # print(target_rot.rot)

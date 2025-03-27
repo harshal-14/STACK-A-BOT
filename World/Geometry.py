@@ -31,12 +31,13 @@ class RotMatrix():
     def to_euler(self) -> np.ndarray:
         return R.from_matrix(self.rot).as_euler('xyz')
     
+    """Quaternions will always be in the form [W X Y Z]"""
     def to_quat(self) -> np.ndarray:
-        return R.from_matrix(self.rot).as_quat()
+        return R.from_matrix(self.rot).as_quat(scalar_first=True)
     
     @classmethod
     def from_quat(cls, quat: np.ndarray) -> "RotMatrix":
-        return cls(R.from_quat(quat).as_matrix())
+        return cls(R.from_quat(quat, scalar_first=True).as_matrix())
 
 class Point():
     def __init__(self, translation):

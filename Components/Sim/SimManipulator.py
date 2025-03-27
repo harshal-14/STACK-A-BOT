@@ -73,9 +73,8 @@ class SimManipulator(Manipulator):
         )
         # np.set_printoptions(precision=3, suppress=True) 
         # print(f"Modern Robotics: {ikpy_joints},\n pybullet: {np.array(list(desired_joint_angles))}")
-        # self.move_js(ikpy_joints)
-        self.move_js(np.array(list(desired_joint_angles)))
-        pass
+        self.move_js(ikpy_joints)
+        # self.move_js(np.array(list(desired_joint_angles)))
     
     def stop(self):
         p.setJointMotorControlArray(self.manipulator_ID, self.joint_ids, p.VELOCITY_CONTROL, np.zeros((6,1)))
