@@ -42,29 +42,27 @@ class LinearInterpolationTS(Routine):
         """
         # Scalar value from [0,1] rep. distance along path. 
         time_delta = (time.time_ns() - self.init_time) / (self.travel_time * S_TO_NS)
-        cur_q = self.manip_ref.get_joint_values()
-        fk_output = self.manip_ref.FK_Solver(cur_q)
-        ik_output = self.manip_ref.IK_Solver(fk_output)
-        # np.set_printoptions(precision=3, suppress=True) # just for this print
-        # print(self.manip_ref._get_ee())
         if time_delta > 1.0:
             return Status(Condition.Success)
         
+        # target position in Task space is interpolated linearly
         point_different = self.dst_pose.point.to_np() - self.init_pose.point.to_np()
         target_point = point_different * time_delta + self.init_pose.point.to_np()
 
-        q_1 = self.init_pose.orientation.to_quat()
+        """ Target rotation is done via SLERP - spherical linear interpolation - of the rotation matrix. 
+            Along a time vector t in [0, 1], the target quat vector can be found via the following equation
+                (q_2 * q_1^(-1))^t * q_1
+            The code below is an expansion of that formula in a readable format. """
+        q_1 = self.init_pose.orientation.to_quat() # [W X Y Z]
         q_2 = self.dst_pose.orientation.to_quat()
 
-        q_inv = inverse_quaternion(q_1)
-        a = multiply_quaternion(q_2, q_inv)
-        b = exponentiate_quaternion(a, time_delta)
-        # SLERP - spherical linear interpolation - of the rotation matrix.
-        target_quat = multiply_quaternion(b, q_1)
+        a = multiply_quaternion(q_2, inverse_quaternion(q_1)) # a = (q_2 * q_1^(-1))
+        b = exponentiate_quaternion(a, time_delta) # b = a^t
         
-        # print(target_quat)
+        target_quat = multiply_quaternion(b, q_1) # b * q_1
+
+        # We translate quaternion back into a rotation matrix and move to new ee_pose
         target_rot = RotMatrix.from_quat(target_quat)
-        # print(target_rot.rot)
         self.manip_ref.move_ts(Pose(target_rot, target_point))
 
         return Status(Condition.In_Progress)

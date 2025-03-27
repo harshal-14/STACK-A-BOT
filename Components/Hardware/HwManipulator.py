@@ -30,7 +30,7 @@ class HwManipulator(Manipulator):
     def move_js(self, q_array: np.ndarray):
         pass
 
-    def move_ts(self, pose:Pose | Point):
+    def move_ts(self, pose:Pose):
         pass
     
     def get_joint_values(self) -> np.ndarray:

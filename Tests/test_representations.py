@@ -1,11 +1,7 @@
-import sys
-sys.path.append('../')
-# sys.__package__ = 
-
 from stack_a_bot.World.Geometry import RotMatrix, Point, Pose
 import numpy as np
 
-## TODO: Add unit testing framework 
+# Not really a proper test file :(
 
 rot = RotMatrix(np.random.rand(3,3))
 trans = Point(np.random.rand(3,1))

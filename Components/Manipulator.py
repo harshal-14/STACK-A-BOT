@@ -5,10 +5,8 @@ from modern_robotics import FKinBody, FKinSpace, IKinBody, IKinSpace, JacobianSp
 
 from .Component import Component
 import numpy as np
-from ..World.Geometry import Pose, Point
+from ..World.Geometry import Pose
 from ..Utilities import joint_array_sanitizer, type_checker
-
-np.set_printoptions(precision=3, suppress=True) 
 
 class Manipulator(Component, ABC):
     """ Abstract representation of a robotic manipulator. 
@@ -21,19 +19,16 @@ class Manipulator(Component, ABC):
             Args:
                 urdf_file (str): relative file path of manipulator URDF file 
         """
+        # ModernRobotics Library implementation of the kinematic chain. 
+        # It is based on Twists and the product of exponentials method for kinematics
         MR=loadURDF(urdf_file)
-        # print(MR)
-        self.M  = MR["M"]
-        self.Slist  = MR["Slist"]
-        self.Mlist  = MR["Mlist"]
-        self.Glist  = MR["Glist"]
-        self.Blist  = MR["Blist"]
-        # print(self.M)
-        # exit(1)
-        # print(Slist)
-        # print(Mlist)
-        # print(Glist)
-        # print(Blist)
+        self.M  = MR["M"] # The Home Configuration (4,4) [R | T]
+        self.Slist  = MR["Slist"] # Space Twists
+        self.Blist  = MR["Blist"] # Body Twists
+        self.Mlist  = MR["Mlist"] # "mass" information of each Link
+        self.Glist  = MR["Glist"] # Spatial Inertia Matrix of links
+
+        self.singularity_eps = 1e-10
     
     # TODO: Manipulation team: Define all behavior here, and implement the methods in both Hw and Sim impls. 
     @abstractmethod
@@ -49,12 +44,12 @@ class Manipulator(Component, ABC):
         raise NotImplementedError("move_js() not implemented by subclass")
     
     @abstractmethod
-    def move_ts(self, pose:Pose | Point):
+    def move_ts(self, pose:Pose):
         """ Commands the interface to move end-effector in task-space. 
             Could be as simple as translating to js and calling `move_js()`
             pose must be within the c-space of the robot
             Args:
-                pose (Pose | Point): End effector pose for the robot. 
+                pose (Pose): End effector pose for the robot. 
             """
         raise NotImplementedError("move_ts() not implemented by subclass")
     
@@ -66,7 +61,6 @@ class Manipulator(Component, ABC):
         """
         raise NotImplementedError("get_joint_values() not implemented by subclass")
     
-    """Do we want to implement the following two methods ourselves, or should we find a library to do this for us?"""
     def FK_Solver(self, q_array:np.ndarray) -> Pose:
         """ Solves for the end effector pose given a set of joint angles.
             The 'q_array' must be of the following construction:
@@ -78,50 +72,61 @@ class Manipulator(Component, ABC):
             Returns:
                 ee_pose (Pose): pose of the end effector.
         """
+        # clean up joint array to ensure it fits into correct type for FK calls
         qs = joint_array_sanitizer(q_array)
-        t_mat = FKinSpace(self.M, self.Slist, qs)
-        t_mat2 = FKinBody(self.M, self.Blist, qs)
-        # print(f"t_mat from space:\n{t_mat},\nt_mat from body:\n{t_mat2}")
+        # choice of FKinSpace vs FKinBody was arbitrary.
+        t_mat = FKinSpace(self.M, self.Slist, qs) 
         return Pose.from_t(t_mat)
 
-
-    # 
     def IK_Solver(self, ee_pose: Pose, init_q_list: np.ndarray | None = None) -> np.ndarray:
         """ Solves for the set of joint angles at a given end effector pose.
-        The `ee_pose` must be of the following construction:
+            The `ee_pose` must be of the following construction:
             * ee_pose.rotation & ee_pose.translation are in reference to the base frame of the Manipuator. 
             * ee_pose.rotation is SO(3) 
-            * ee_pose 
             Args:
-                ee_pose (Pose | Point): pose of end_effector to solve for. 
-                init ADD
+                ee_pose (Pose): pose of end_effector to solve for. 
+                init_q_list (np.ndarray): list of q values to use for inital guess for solving IK. [(6,1), (6,), (1,6)]
             Returns:
-                q_array (np.ndarray): Array of six joint values in radians representing the manip position at a given ee_pose.
+                q_array (np.ndarray): Joint values in radians representing ee_pose in Joint-Space. (6,1)
         """
         type_checker([ee_pose, init_q_list], [[Pose], [np.ndarray, type(None)]])
         if not init_q_list:
             init_q_list = self.get_joint_values().flatten()
         qs_zero = np.zeros((6))
-        jB = np.linalg.det(JacobianBody(self.Blist, init_q_list))
-        jS = np.linalg.det(JacobianSpace(self.Blist, init_q_list))
+        """The following might be a good place to check for singularity"""
+        # is_near = self.near_singularity(init_q_list)
 
-        # print(f"body Jac det: {jB}, space Jac det: {jS}")s
-        qs,    suc = IKinBody( self.Blist, self.M, ee_pose.get_transform(), init_q_list, 0.01, 0.001)
-        qs_2, suc2 = IKinSpace(self.Slist, self.M, ee_pose.get_transform(), init_q_list, 0.01, 0.001)
-        qs_3, suc3 = IKinBody( self.Blist, self.M, ee_pose.get_transform(),     qs_zero, 0.01, 0.001)
-        qs_4, suc4 = IKinSpace(self.Slist, self.M, ee_pose.get_transform(),     qs_zero, 0.01, 0.001)
-
-        if suc:
-            q_final = qs
-        elif suc2:
-            q_final = qs_2
-        elif suc3:
-            q_final = qs_3
-        elif suc4:
-            q_final = qs_4
-        else:
-            raise RuntimeError("Inverse Kinematics Failed")
-        # print(f"qs from space:\n{qs},\nqs from body:\n{qs_2}")
-        # print(f"IK statuses [{qs}, {suc},\n {qs_2}, {suc2},\n  {qs_3}, {suc3},\n {qs_4}, {suc4},\n]")
-
-        return np.array(q_final)
+        """ Attempting to find IK solution:
+                We try 4 different methods to find a valid solution. 
+                We only run subsequent attempts upon a failure to converge.
+        """
+        qs,    success = IKinBody( self.Blist, self.M, ee_pose.get_transform(), init_q_list, 0.01, 0.001)
+        if success:
+            return qs.reshape((6,1))
+        qs, success = IKinSpace(self.Slist, self.M, ee_pose.get_transform(), init_q_list, 0.01, 0.001)
+        if success:
+            return qs.reshape((6,1))
+        # If attempts using init_q fail, we try the home configuration
+        qs, success = IKinBody( self.Blist, self.M, ee_pose.get_transform(),     qs_zero, 0.01, 0.001)
+        if success:
+            return qs.reshape((6,1))
+        qs, success = IKinSpace(self.Slist, self.M, ee_pose.get_transform(),     qs_zero, 0.01, 0.001)
+        if success:
+            return qs.reshape((6,1))
+        # if all attempts fail, raise RuntimeError. 
+        # This behavior can change in future if we want our algos to be more robust. 
+        #   (return None -> handle Nonetype when calling IK_Solver())
+        raise RuntimeError("Inverse Kinematics Failed")
+    
+    def near_singularity(self, q_list: np.ndarray) -> bool:
+        """ Tests a given position for proximity to singularity via determinant of the Jacobian. 
+            Args:
+                q_list (np.ndarray): Position of EE in joint-space. 
+            Returns:
+                is_near (bool): Whether the position is within some range epsilon to a singularity 
+        """
+        jB = np.linalg.det(JacobianBody(self.Blist, q_list))
+        jS = np.linalg.det(JacobianSpace(self.Blist, q_list))
+        if abs(jB) < self.singularity_eps or abs(jS) < self.singularity_eps:
+            return True
+        return False 

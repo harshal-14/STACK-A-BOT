@@ -6,18 +6,19 @@
         Pose: Combined object containing 6-DoF Transformation.
 """
 
-""" TODO: Implement as needed - increased uses for each class:
-            Obj to different representations methods
-            Overridden operators ('-', '+', ...)
-            Other commonly utilized math operations
-            ...    
-"""  
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 from ..Utilities import type_checker, size_checker
 
-# Riley - add details, type translations
+
 class RotMatrix():
+    """ S0(3) Rotation Matrix. 
+        Contains methods for translating to various other representations such as 
+            * (to) Euler, (to/from) Quaternion
+        Attributes:
+            rot (np.ndarray): Rotation Matrix (3,3)
+    """
+
     def __init__(self, rot: np.ndarray):
         type_checker([rot], [[np.ndarray]])
         size_checker([rot], [[(1,3,3), (3,3)]])
@@ -49,9 +50,14 @@ class Point():
         return np.array([[self.x],[self.y],[self.z]])
 
 class Pose():
-    """A position in 3D space with orientation."""
+    """A position in 3D space with orientation.
+        Attributes:
+            orient (RotMatrix): orientation of axes
+            trans (Point): translation in R^3
+    """
+
     def __init__(self, orient, trans):
-        """ Pose Constructor 
+        """ Pose Constructor with parameter type translation.
             Args:
                 orient (RotMatrix || np.ndarray): Orientation of Axes
                 trans (Point || np.ndarray): Point in space w.r.t base frame of robot. 
@@ -61,7 +67,6 @@ class Pose():
 
     def get_transform(self):
         return np.vstack((np.hstack((self.orientation.to_np(), self.point.to_np())), np.array([0,0,0,1])))
-    
 
     @classmethod
     def from_t(cls, t_matrix: np.ndarray) -> "Pose":

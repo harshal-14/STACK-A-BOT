@@ -51,30 +51,10 @@ class SimManipulator(Manipulator):
     def move_ts(self, pose: Pose):
         """ Commands a movement in task-space by utilzing IK solver and then `move_js`
             Args:
-                pose (Pose): Target end-effector position in R^3 w/ optional rotation
-        """
-        if type(pose) == Pose:
-            target_point = pose.point.to_np()
-        else:
-            target_point = pose.to_np()
-            
+                pose (Pose): Target end-effector position in R^3 w/ rotation
+        """            
         ikpy_joints = self.IK_Solver(pose)
-        desired_joint_angles = p.calculateInverseKinematics(
-            self.manipulator_ID,
-            5,
-            target_point,
-            # targetOrientation=None,
-            # lowerLimits=lower_limits,
-            # upperLimits=upper_limits,
-            # jointRanges=joint_ranges,
-            # restPoses=start_joint_angles,
-            maxNumIterations=100,
-            residualThreshold=1e-4
-        )
-        # np.set_printoptions(precision=3, suppress=True) 
-        # print(f"Modern Robotics: {ikpy_joints},\n pybullet: {np.array(list(desired_joint_angles))}")
         self.move_js(ikpy_joints)
-        # self.move_js(np.array(list(desired_joint_angles)))
     
     def stop(self):
         p.setJointMotorControlArray(self.manipulator_ID, self.joint_ids, p.VELOCITY_CONTROL, np.zeros((6,1)))

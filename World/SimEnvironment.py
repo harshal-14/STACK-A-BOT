@@ -6,17 +6,28 @@ import numpy as np
 #TODO: @Chirag @Harshal @Raval, Someone with better pybullet knowledge pls fill in this Routine... this is my best guess as to what we need
 
 class SimEnvironment(metaclass=SingletonMeta):
+    """Pybullet Environment that contains all virtual objects. 
+
+        This class is responsible for environment related requests:
+        manipulating object references, stepping simulator (automatic), ... 
+        
+        Attributes:
+            urdf_path (str): Relative path where object URDF files exist.
+            time_step (float): UNUSED. constant timestep for manually controlling sim steps
+            object_IDS (list[int]): Contains all object pybullet references.
+            plane_ID (int): pybullet ID of ground plane
+    """
 
     def __init__(self, urdf_path: str, time_step: float):
         self.urdf_path = urdf_path
         self.time_step = time_step
-        self.planeID = -1
-        self.box_IDs = []
+        self.object_IDS = []
+        self.plane_ID:int
 
     def start_enviornment(self):
         """ Sets up pybullet simulator by setting parameters and spawning objects."""
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
-        self.planeID = p.loadURDF("plane.urdf")
+        self.plane_ID = p.loadURDF("plane.urdf")
         self.spawn_box(0)
         self.spawn_box(1, position=[0.3, -0.1, 0.03])
         p.setGravity(0, 0, -9.81)
@@ -29,7 +40,7 @@ class SimEnvironment(metaclass=SingletonMeta):
                 position (list | np.ndarray): Position in R^3 for box. 
         """
         box_id = p.loadURDF(self.urdf_path + f"box{box_num}.urdf", basePosition=position)
-        self.box_IDs.append(box_id)
+        self.object_IDS.append(box_id)
 
     def stop_environment(self):
         pass

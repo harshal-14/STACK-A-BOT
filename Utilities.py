@@ -2,8 +2,9 @@
 
 import typing
 import numpy as np
-from scipy.spatial.transform import Rotation as R
 import math
+
+from scipy.spatial.transform import Rotation as R
 
 """Time conversions"""
 NS_TO_MS = 1e-6
@@ -15,10 +16,6 @@ MS_TO_S = 1e-3
 S_TO_MS = 1e3
 S_TO_NS = 1e9
 
-""" Perhaps some thought should go into how we check inputs to function to ensure safety. 
-    Do we want a class specific to sanatizing inputs?
-    Do we want to make a "one size fits all" function to do this?
-"""
 def type_checker(inputs: list[typing.Any], types: list[list[type]]):
     """Checks inputs to a function to ensure type and size correspondence. 
         Function should be called as the first line of ANY function. 
@@ -69,29 +66,53 @@ def joint_array_sanitizer(input: np.ndarray | list) -> np.ndarray:
     return qs
 
 def inverse_quaternion(quat: np.ndarray) -> np.ndarray:
-    # not a very smart method,
+    # not a very smart method, but it works
     return R.from_quat(quat, scalar_first=True).inv().as_quat(scalar_first=True)
 
-def multiply_quaternion(q_0: np.ndarray, q_1: np.ndarray) -> np.ndarray:
-    q_r_0 = q_0[0]*q_1[0] - q_0[1]*q_1[1] - q_0[2]*q_1[2] - q_0[3]*q_1[3]
-    q_r_1 = q_0[0]*q_1[1] + q_0[1]*q_1[0] + q_0[2]*q_1[3] - q_0[3]*q_1[2]
-    q_r_2 = q_0[0]*q_1[2] - q_0[1]*q_1[3] + q_0[2]*q_1[0] + q_0[3]*q_1[1]
-    q_r_3 = q_0[0]*q_1[3] + q_0[1]*q_1[2] - q_0[2]*q_1[1] + q_0[3]*q_1[0]
+def multiply_quaternion(q_1: np.ndarray, q_2: np.ndarray) -> np.ndarray:
+    """ Computes the Hamilton product of two quaternions q_1 and q_2.
+        Note that q_1*q_2 IS NOT equivalent to q_2 * q_1 
+        Args:
+            q_1 (np.ndarray): First quaternion in form [W X Y Z]
+            q_2 (np.ndarray): Second quaternion in form [W X Y Z]
+        Returns:
+            prod (np.ndarray): Hamilton Product of q_1 and q_2
+    """
+    q_r_0 = q_1[0]*q_2[0] - q_1[1]*q_2[1] - q_1[2]*q_2[2] - q_1[3]*q_2[3]
+    q_r_1 = q_1[0]*q_2[1] + q_1[1]*q_2[0] + q_1[2]*q_2[3] - q_1[3]*q_2[2]
+    q_r_2 = q_1[0]*q_2[2] - q_1[1]*q_2[3] + q_1[2]*q_2[0] + q_1[3]*q_2[1]
+    q_r_3 = q_1[0]*q_2[3] + q_1[1]*q_2[2] - q_1[2]*q_2[1] + q_1[3]*q_2[0]
 
     return np.array([float(q_r_0),float(q_r_1),float(q_r_2),float(q_r_3)])
 
 def polar_decomp_quaternion(quat) -> tuple[float, np.ndarray]:
-    # a = ||quat|| * cos(phi) -> phi = cos^-1(q / ||quat||)
-    # n_hat = v / ||v||
+    """ Computes the polar representation of a quaternion [W X Y Z] -> [phi, n] using the following equation:
+        \n \t q = |q| * e^(n * phi) = |q| * (cos(phi) + n * sin(phi))
+        \n See [stack exchange](https://math.stackexchange.com/questions/1496308/how-can-i-express-a-quaternion-in-polar-form#:~:text=Sorted%20by:,sin%CE%B8=v%7Cv%7C) for impl details. 
+        Args:
+            quat (np.ndarray): quaternion to decompose
+        Returns:
+            phi (float): polar anglular component
+            n (np.ndarray): unit vector of imaginary part of quaternion (3,)
+    """
     phi = math.acos(quat[0] / np.linalg.norm(quat))
-    phi2 = math.asin(np.linalg.norm(quat[1:]) / np.linalg.norm(quat))
-    # phi2 == phi AFAIK
-    n_hat = quat[1:] / np.linalg.norm(quat[1:])
-    return phi, n_hat
+    # phi2 = math.asin(np.linalg.norm(quat[1:]) / np.linalg.norm(quat)) # two valid methods for computing phi
+    n = quat[1:] / np.linalg.norm(quat[1:])
+    return phi, n
 
 def exponentiate_quaternion(quat: np.ndarray, exponent: float) -> np.ndarray:
-    # ||quat||^exponent * (cos(exponent*phi) + n_hat * sin(exponent*phi))
-    phi, n_hat = polar_decomp_quaternion(quat)
+    """ Computes the exponentiation of a quaternion (quat) by a non-negative power (exponent)
+        \n the exponentation of a quaternion is done in polar form using the following equation:
+        \n \t q^x = |q|^x * e^(n * phi * x) = |q|^x * (cos(phi * x) + n * sin(phi * x))
+        \n see [Quaternion Wiki](https://en.wikipedia.org/wiki/Quaternion#Exponential,_logarithm,_and_power_functions) for impl details.
+    
+        Args:
+            quat (np.ndarray): quaternion (base).
+            exponent (float): exponent. Must be a real non-negative number
+        Returns:
+            result_quat (np.ndarray): result of quat^x
+    """
+    phi, n = polar_decomp_quaternion(quat)
     a = np.linalg.norm(quat) ** exponent * math.cos(exponent*phi)
-    v = np.linalg.norm(quat) ** exponent * n_hat * math.sin(exponent*phi)
+    v = np.linalg.norm(quat) ** exponent * n * math.sin(exponent*phi)
     return np.concatenate((np.array([a]), v))

@@ -8,11 +8,11 @@ class EnvironmentSetup(Routine):
 
     Attributes:
         time_step (float): time in seconds between simulation step updates.
+        urdf_path (str): relative path where object URDF files exist.
     """
     def __init__(self, urdf_path: str, time_step: float = None):
         self.urdf_path = urdf_path
         self.time_step = time_step # in seconds
-        pass
 
     def init(self, prev_outputs, parameters = None) -> Status:
         p.connect(p.GUI)

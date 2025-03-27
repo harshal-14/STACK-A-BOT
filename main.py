@@ -10,6 +10,7 @@ from .Runtime_Handling import RoutineScheduler
 from .Runtime_Handling.Routines.Manipulation import ComponentBringup, ComponentShutdown, LinearInterpolationJS, LinearInterpolationTS
 from .Runtime_Handling.Routines.Perception import EnvironmentSetup
 from .World.Geometry import Pose
+
 from scipy.spatial.transform import Rotation as R
 
 def main(args:dict):
@@ -21,9 +22,9 @@ def main(args:dict):
 
     """Add all routines that should run during operation"""
     home_q = np.array([[0], [0], [-np.pi/2], [0], [-np.pi/4], [0]])
-    rand_ee_point  = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [0.3,  0.0, 0.2]) 
-    rand_ee_point2 = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [0.0,  0.3, 0.2]) 
-    rand_ee_point3 = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [-0.3, 0.0, 0.2])
+    ee_p1  = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [0.3,  0.0, 0.2]) 
+    ee_p2 = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [0.0,  0.3, 0.2]) 
+    ee_p3 = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [-0.3, 0.0, 0.2])
     # movements in JS
     initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[-np.pi/2], [0], [0], [0], [0], [0]]), 2.5))
     initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [-np.pi/2], [0], [0], [0], [0]]), 2.5))
@@ -33,11 +34,11 @@ def main(args:dict):
     initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [-np.pi/2]]), 2.5))
     initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(home_q, 2.5))
     # movements in TS
-    initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(rand_ee_point, 2))
-    initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(rand_ee_point2, 2))
-    initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(rand_ee_point3, 2))
-    initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(rand_ee_point2, 2))
-    initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(rand_ee_point, 2))
+    initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p1, 2))
+    initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p2, 2))
+    initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p3, 2))
+    initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p2, 2))
+    initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p1, 2))
     scheduler = RoutineScheduler.RoutineScheduler(initial_routines)
     while(scheduler.has_routines()):
         scheduler.run()
