@@ -26,7 +26,7 @@ class ComponentBringup(Routine):
             ## initiate all Sim Components and then lock all component types
             cam = SimCamera.SimCamera() 
             ee = SimEndEffector.SimEndEffector()
-            manip = SimManipulator.SimManipulator(self.args.URDF_file,self.args.meshes_dir)
+            manip = SimManipulator.SimManipulator(self.args.URDF_path+"thor_robot.urdf",self.args.meshes_dir)
         elif self.args.mode == 'HW':
             cam = HwCamera.HwCamera() 
             ee = HwEndEffector.HwEndEffector()

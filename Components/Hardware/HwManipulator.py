@@ -1,5 +1,6 @@
 from ..Manipulator import Manipulator 
 import numpy as np
+from ...World.Geometry import Pose, Point 
 
 class HwManipulator(Manipulator):
     """Low-level integration & communication with Manipulator.
@@ -26,8 +27,11 @@ class HwManipulator(Manipulator):
     def disconnect(self, **kwargs) -> int:
         return 0
 
-    def go_to(self, q_array: np.ndarray) -> int:
-        return 0
+    def move_js(self, q_array: np.ndarray):
+        pass
+
+    def move_ts(self, pose:Pose):
+        pass
     
     def get_joint_values(self) -> np.ndarray:
         return np.zeros((1))

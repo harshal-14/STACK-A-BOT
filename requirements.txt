@@ -1,2 +1,6 @@
 numpy
 pybullet
+scipy
+modern-robotics
+urchin
+mr_urdf_loader
