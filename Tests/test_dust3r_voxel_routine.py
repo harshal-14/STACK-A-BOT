@@ -10,12 +10,12 @@ import argparse
 project_root = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(project_root)
 
-from Components.Hardware.HwCamera import HwCamera
-from Components.SingletonRegistry import update_singleton_registry
-from Components.Camera import Camera
-from Runtime_Handling.RoutineScheduler import RoutineScheduler
-from Runtime_Handling.Routines.Perception.DUSt3RTestRoutine import DUSt3RTestRoutine
-from Runtime_Handling.Routines.Perception.VoxelGridTestRoutine import VoxelGridTestRoutine
+from ..Components.Hardware.HwCamera import HwCamera
+from ..Components.SingletonRegistry import update_singleton_registry
+from ..Components.Camera import Camera
+from ..Runtime_Handling.RoutineScheduler import RoutineScheduler
+from ..Runtime_Handling.Routines.Perception.DUSt3RTestRoutine import DUSt3RTestRoutine
+from ..Runtime_Handling.Routines.Perception.VoxelGridTestRoutine import VoxelGridTestRoutine
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Test DUSt3R and VoxelGrid integration")

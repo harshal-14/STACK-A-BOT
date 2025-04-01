@@ -2,17 +2,17 @@
 This file is a test routine to integrate DUSt3R with the camera system.
 """
 
-from Runtime_Handling.Routines.Routine import Routine
-from Runtime_Handling.Status import Status, Condition
-from Components.SingletonRegistry import get_singleton
-from Components.Camera import Camera
+from ..Routine import Routine
+from .. .Status import Status, Condition
+from ....Components.SingletonRegistry import get_singleton
+from ....Components.Camera import Camera
 import os
 import sys
 import numpy as np
 import open3d as o3d
 import cv2
 
-# Add the path to access dust3r_module
+# # Add the path to access dust3r_module
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 dust3r_module_path = os.path.join(project_root, "Algorithms", "dust3r")
 sys.path.append(dust3r_module_path)

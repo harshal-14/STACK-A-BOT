@@ -8,9 +8,9 @@ import sys
 project_root = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(project_root)
 
-from Components.Hardware.HwCamera import HwCamera
-from Components.SingletonRegistry import update_singleton_registry
-from Components.Camera import Camera
+from ..Components.Hardware.HwCamera import HwCamera
+from ..Components.SingletonRegistry import update_singleton_registry
+from ..Components.Camera import Camera
 import numpy as np
 import cv2
 

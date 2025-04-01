@@ -1,16 +1,16 @@
-from Runtime_Handling.Routines.Routine import Routine
-from Runtime_Handling.Status import Status, Condition
-from Components.SingletonRegistry import get_singleton
-from Components.Camera import Camera
+from ..Routine import Routine
+from . ..Status import Status, Condition
+from ....Components.SingletonRegistry import get_singleton
+from ....Components.Camera import Camera
 import os
 import sys
 import numpy as np
 import open3d as o3d
 
 # Add the path to access improved_voxels
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-dust3r_path = os.path.join(project_root, "Algorithms", "dust3r")
-sys.path.append(dust3r_path)
+# project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+# dust3r_path = os.path.join(project_root, "Algorithms", "dust3r")
+# sys.path.append(dust3r_path)
 
 # Now import the module directly
 from improved_voxels import StabilizedVoxelGrid3D
