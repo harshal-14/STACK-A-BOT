@@ -14,6 +14,17 @@ class ComponentBringup(Routine):
         args (dict): User specified runtime arguements (mode, file paths...) 
         comp_list (list): List of components added to registry.  
     """
+    def _init(self, prev_outputs):
+        return self.init(prev_outputs)
+    
+    def _loop(self):
+        return self.loop()
+        
+    def _end(self):
+        return self.end()
+        
+    def _handle_fault(self, prev_status=None):
+        return self.handle_fault(prev_status)
 
     def __init__(self, args:dict) -> Status:
         self.args = args
