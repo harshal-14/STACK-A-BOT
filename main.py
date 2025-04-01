@@ -72,6 +72,8 @@ def parse_args():
     parser.add_argument('--use_voxel_grid', action='store_true', help="Whether to use VoxelGrid for perception")
     parser.add_argument('--voxel_size', type=float, default=0.01, help="Voxel size for VoxelGrid")
 
+    ## TODO add other args we want in this program...
+
     return parser.parse_args()
 
 if __name__ == '__main__':

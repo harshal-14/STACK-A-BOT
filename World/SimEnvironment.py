@@ -1,5 +1,4 @@
-# from ..Components.SingletonRegistry import SingletonMeta
-from Components.SingletonRegistry import SingletonMeta
+from ..Components.SingletonRegistry import SingletonMeta
 import threading
 import time
 import pybullet as p
