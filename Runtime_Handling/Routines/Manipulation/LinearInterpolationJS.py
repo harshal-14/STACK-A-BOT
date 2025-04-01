@@ -47,17 +47,18 @@ class LinearInterpolationJS(Routine):
         return Status(Condition.Success)
     
     def loop(self) -> Status:
-        """Linearly interpolates target position based on current time. Returns Success once we have traveled for travel_time seconds.
+        """Linearly interpolates target position based on current time. 
+            Returns Success once we have traveled for travel_time seconds.
             May want to change behavior to check if motion was actually successful...
         """
-        # gives us a scalar value from [0,1] defining where along the path we should be aiming to go. 
-        time_delta = (time.time_ns() - self.init_time) / (self.travel_time * S_TO_NS) 
+        # Scalar value from [0,1] rep. distance along path.
+        time_delta = (time.time_ns() - self.init_time) / (self.travel_time * S_TO_NS)
         if time_delta > 1.0:
             return Status(Condition.Success)
 
         q_diff = self.dst_q - self.init_q
         target_q = q_diff * time_delta + self.init_q
-        self.manip_ref.go_to(target_q)
+        self.manip_ref.move_js(target_q)
 
         return Status(Condition.In_Progress)
     

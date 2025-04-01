@@ -7,3 +7,12 @@ scipy
 modern-robotics
 urchin
 mr_urdf_loader
+roma
+gradio
+matplotlib
+tqdm
+einops
+trimesh
+tensorboard
+pyglet<2
+huggingface-hub[torch]>=0.22

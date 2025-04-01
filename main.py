@@ -2,16 +2,6 @@
 Add actual docustring to this...
 """
 
-"""Riley Todo List for this branch:
-    Active Items:
-        * create demo behavior
-            * spawn box somewhere....
-            * move lin interpolate to box
-            * implement ending routines for clean shutdown
-        * Figure out immediate action items as a team
-        * Implement pytest behavior?
-"""
-
 import argparse
 import numpy as np
 import sys
@@ -19,20 +9,38 @@ import os
 
 from .Components.SingletonRegistry import * # very important line
 from .Runtime_Handling import RoutineScheduler
-from .Runtime_Handling.Routines.Manipulation import ComponentBringup, LinearInterpolationJS, ComponentShutdown
+from .Runtime_Handling.Routines.Manipulation import ComponentBringup, ComponentShutdown, LinearInterpolationJS, LinearInterpolationTS
 from .Runtime_Handling.Routines.Perception import EnvironmentSetup
+from .World.Geometry import Pose
+
+from scipy.spatial.transform import Rotation as R
 
 def main(args:dict):
     """Setup components and environment"""
     initial_routines = []
     if args.mode == 'SIM':
-        initial_routines.append(EnvironmentSetup.EnvironmentSetup(1e-5))
+        initial_routines.append(EnvironmentSetup.EnvironmentSetup(args.URDF_path))
     initial_routines.append(ComponentBringup.ComponentBringup(args))
 
     """Add all routines that should run during operation"""
-    home_q = np.array([[0], [0], [-np.pi/2], [0], [0], [0]])
-    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(home_q, 5))
-
+    home_q = np.array([[0], [0], [-np.pi/2], [0], [-np.pi/4], [0]])
+    ee_p1  = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [0.3,  0.0, 0.2]) 
+    ee_p2 = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [0.0,  0.3, 0.2]) 
+    ee_p3 = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [-0.3, 0.0, 0.2])
+    # movements in JS
+    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[-np.pi/2], [0], [0], [0], [0], [0]]), 2.5))
+    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [-np.pi/2], [0], [0], [0], [0]]), 2.5))
+    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [-np.pi/2], [0], [0], [0]]), 2.5))
+    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [0], [-np.pi/2], [0], [0]]), 2.5))
+    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [0], [0], [-np.pi/2], [0]]), 2.5))
+    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [-np.pi/2]]), 2.5))
+    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(home_q, 2.5))
+    # movements in TS
+    initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p1, 2))
+    initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p2, 2))
+    initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p3, 2))
+    initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p2, 2))
+    initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p1, 2))
     scheduler = RoutineScheduler.RoutineScheduler(initial_routines)
     while(scheduler.has_routines()):
         scheduler.run()
@@ -63,7 +71,6 @@ def parse_args():
     parser.add_argument('--mode', type=str, default='SIM', help='Which interface to use. Options: "SIM" (default), "HW"')
     parser.add_argument('--URDF_path', type=str, default='stack_a_bot/World/models/', help="Filepath of the robot's urdf. ")
     parser.add_argument('--meshes_dir', type=str, default='stack_a_bot/World/models/thor_meshes/', help="Directory where the robot's mesh files live. Useful for sim or digital twin.")
-    
     # Add DUSt3R and VoxelGrid arguments, to be later on used for the perception system
     parser.add_argument('--use_dust3r', action='store_true', help="Whether to use DUSt3R for perception")
     parser.add_argument('--num_angles', type=int, default=4, help="Number of angles for DUSt3R perception")
@@ -71,7 +78,6 @@ def parse_args():
     parser.add_argument('--output_dir', type=str, default='./output', help="Directory to save outputs")
     parser.add_argument('--use_voxel_grid', action='store_true', help="Whether to use VoxelGrid for perception")
     parser.add_argument('--voxel_size', type=float, default=0.01, help="Voxel size for VoxelGrid")
-
     ## TODO add other args we want in this program...
 
     return parser.parse_args()
