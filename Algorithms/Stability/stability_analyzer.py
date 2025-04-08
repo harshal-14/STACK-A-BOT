@@ -95,7 +95,6 @@ def main(ply_file_path, box_size=(0.2, 0.15, 0.1), visualize=True, fix_orientati
                 best_surface = surface
                 best_stability_grid = stability_grid
                 best_coordinate_grid = coordinate_grid
-    
     if best_overall_coordinates is None:
         print("Could not find a suitable placement for the box.")
         return None, 0.0
@@ -105,14 +104,23 @@ def main(ply_file_path, box_size=(0.2, 0.15, 0.1), visualize=True, fix_orientati
     print(f"Stability score: {best_overall_score:.4f}")
     
     if visualize and best_surface is not None:
-
         o3d.visualization.draw_geometries([best_surface], window_name="Best Surface")
         
         # Re-evaluate the best surface
-        visualize_stability_map(pcd, best_stability_grid, best_coordinate_grid, best_overall_coordinates)
+        visualize_stability_map(pcd, best_stability_grid, best_coordinate_grid, best_overall_coordinates, rotation_info)
 
-    box_marker = create_box_marker(best_overall_coordinates, box_size)
+    # Get surface normal at the best placement location
+    best_surface_points = np.asarray(best_surface.points)
+    best_surface_normals = np.asarray(best_surface.normals)
     
+    # Find the nearest point to the best placement
+    distances = np.linalg.norm(best_surface_points - best_overall_coordinates, axis=1)
+    nearest_idx = np.argmin(distances)
+    surface_normal = best_surface_normals[nearest_idx]
+    
+    # Create box marker with the surface normal
+    box_marker = create_box_marker(best_overall_coordinates, box_size, surface_normal)
+        
     # Combine point cloud and box for visualization
     combined_pcd = o3d.geometry.PointCloud()
     combined_pcd.points = o3d.utility.Vector3dVector(np.asarray(pcd.points))
@@ -131,7 +139,7 @@ def main(ply_file_path, box_size=(0.2, 0.15, 0.1), visualize=True, fix_orientati
     
     return best_overall_coordinates, best_overall_score
 
-def evaluate_box_placement(surface_pcd, box_size=(0.2, 0.15, 0.1), existing_objects=None, 
+def evaluate_box_placement(surface_pcd, box_size=(0.0002, 0.00015, 0.0001), existing_objects=None, 
                           proximity_weight=0.1, min_clearance=0.05):
     """
     Evaluate potential box placements on a surface.
@@ -295,8 +303,7 @@ def find_best_placement(stability_grid, coordinate_grid):
     
     return best_coordinates, best_score
 
-# TODO: Fix the visualization to show the box placement on the surface, currently it shows the box in the air
-def visualize_stability_map(pcd, stability_grid, coordinate_grid, best_placement=None, rotation_info=None):
+def visualize_stability_map(pcd, stability_grid, coordinate_grid, best_placement=None, rotation_info=None, box_dimensions=(0.1, 0.1, 0.05)):
     """
     Visualize the stability map with counter-rotation to display in original orientation.
     
@@ -306,6 +313,7 @@ def visualize_stability_map(pcd, stability_grid, coordinate_grid, best_placement
         coordinate_grid (numpy.ndarray): Grid of 3D coordinates
         best_placement (tuple, optional): Best placement coordinates
         rotation_info (dict, optional): Information about rotations applied during processing
+        box_dimensions (tuple, optional): Dimensions of the box (width, length, height)
         
     Returns:
         None
@@ -374,8 +382,51 @@ def visualize_stability_map(pcd, stability_grid, coordinate_grid, best_placement
     if best_placement is not None:
         # Counter-rotate the best placement point
         rotated_best = counter_rotation @ best_placement
+        
+        # Draw the box with its bottom face on the surface at the best placement
+        # Extract box dimensions
+        width, length, height = box_dimensions
+        
+        # The rotated_best point is the center of the bottom face of the box
+        # Calculate the 8 corners of the box
+        box_corners = np.array([
+            # Bottom face
+            [rotated_best[0] - width/2, rotated_best[1] - length/2, rotated_best[2]],
+            [rotated_best[0] + width/2, rotated_best[1] - length/2, rotated_best[2]],
+            [rotated_best[0] + width/2, rotated_best[1] + length/2, rotated_best[2]],
+            [rotated_best[0] - width/2, rotated_best[1] + length/2, rotated_best[2]],
+            # Top face
+            [rotated_best[0] - width/2, rotated_best[1] - length/2, rotated_best[2] + height],
+            [rotated_best[0] + width/2, rotated_best[1] - length/2, rotated_best[2] + height],
+            [rotated_best[0] + width/2, rotated_best[1] + length/2, rotated_best[2] + height],
+            [rotated_best[0] - width/2, rotated_best[1] + length/2, rotated_best[2] + height]
+        ])
+        
+        # Define the connections between corners for the box edges
+        edges = [
+            # Bottom face
+            [0, 1], [1, 2], [2, 3], [3, 0],
+            # Top face
+            [4, 5], [5, 6], [6, 7], [7, 4],
+            # Connecting edges
+            [0, 4], [1, 5], [2, 6], [3, 7]
+        ]
+        
+        # Draw the box edges
+        for edge in edges:
+            ax1.plot([box_corners[edge[0], 0], box_corners[edge[1], 0]],
+                     [box_corners[edge[0], 1], box_corners[edge[1], 1]],
+                     [box_corners[edge[0], 2], box_corners[edge[1], 2]],
+                     'r-', linewidth=2)
+        
+        # Add a marker for the best placement point (center of bottom face)
         ax1.scatter(rotated_best[0], rotated_best[1], rotated_best[2],
                     c='red', s=100, marker='*', edgecolors='black', linewidth=1.5)
+        
+        # Add a small arrow indicating orientation if needed
+        arrow_length = min(width, length) * 0.8
+        ax1.quiver(rotated_best[0], rotated_best[1], rotated_best[2],
+                   0, 0, arrow_length, color='blue', arrow_length_ratio=0.3)
     
     # Set labels and title
     ax1.set_xlabel('X')
@@ -386,6 +437,21 @@ def visualize_stability_map(pcd, stability_grid, coordinate_grid, best_placement
     # Adjust the view angle to show horizontal surfaces properly
     # This typically gives a clearer view of horizontal planes
     ax1.view_init(elev=30, azim=45)
+    
+    # Make sure all axes have the same scale
+    max_range = np.array([
+        vis_points[:, 0].max() - vis_points[:, 0].min(),
+        vis_points[:, 1].max() - vis_points[:, 1].min(),
+        vis_points[:, 2].max() - vis_points[:, 2].min()
+    ]).max() / 2.0
+    
+    mid_x = (vis_points[:, 0].max() + vis_points[:, 0].min()) * 0.5
+    mid_y = (vis_points[:, 1].max() + vis_points[:, 1].min()) * 0.5
+    mid_z = (vis_points[:, 2].max() + vis_points[:, 2].min()) * 0.5
+    
+    ax1.set_xlim(mid_x - max_range, mid_x + max_range)
+    ax1.set_ylim(mid_y - max_range, mid_y + max_range)
+    ax1.set_zlim(mid_z - max_range, mid_z + max_range)
     
     plt.tight_layout()
     plt.savefig('stability_map.png', dpi=300, bbox_inches='tight')
@@ -408,7 +474,7 @@ def visualize_stability_map(pcd, stability_grid, coordinate_grid, best_placement
         print("Saved colored point cloud to 'stability_map.ply'")
     
     plt.show()
-    
+        
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate a stability map from a point cloud for box placement")
     parser.add_argument("ply_file", help="Path to the PLY file")

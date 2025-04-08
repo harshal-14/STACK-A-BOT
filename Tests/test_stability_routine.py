@@ -19,9 +19,9 @@ def parse_args():
         description="Test stability analysis on a point cloud file"
     )
     parser.add_argument("input_file", type=str, help="Path to the PLY point cloud file")
-    parser.add_argument("--box_width", type=float, default=0.2, help="Width of the box in meters")
-    parser.add_argument("--box_depth", type=float, default=0.15, help="Depth of the box in meters")
-    parser.add_argument("--box_height", type=float, default=0.1, help="Height of the box in meters")
+    parser.add_argument("--box_width", type=float, default=0.02, help="Width of the box in meters")
+    parser.add_argument("--box_depth", type=float, default=0.015, help="Depth of the box in meters")
+    parser.add_argument("--box_height", type=float, default=0.01, help="Height of the box in meters")
     parser.add_argument("--no_viz", action="store_true", help="Disable visualization")
     parser.add_argument("--no_orientation_fix", action="store_true", help="Disable automatic orientation fix")
     parser.add_argument("--output_dir", type=str, default="stability_output", help="Directory to save output files")

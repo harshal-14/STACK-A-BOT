@@ -106,33 +106,95 @@ def distance_from_edge(points, point):
         print(f"Error calculating distance from edge: {e}")
         return 0.0
 
-def create_box_marker(position, box_size):
+def create_box_marker(position, box_size, surface_normal=None):
     """
-    Create a box marker at the specified position.
+    Create a box marker at the specified position, aligned with the surface.
     
     Args:
-        position (numpy.ndarray): Center position of the box (x, y, z)
+        position (numpy.ndarray): Center position of the bottom face of the box (x, y, z)
         box_size (tuple): Dimensions of the box (width, depth, height)
+        surface_normal (numpy.ndarray, optional): Normal vector of the surface
         
     Returns:
         o3d.geometry.LineSet: Line set representing the box
     """
     import open3d as o3d
     
+    # Default normal pointing upward if not provided
+    if surface_normal is None:
+        surface_normal = np.array([0, 0, 1])
+    
+    # Normalize the surface normal
+    surface_normal = surface_normal / np.linalg.norm(surface_normal)
+    
+    # Calculate the center of the box (shift up by half height from position)
+    # This ensures the bottom of the box is at the specified position
+    box_center = position + surface_normal * (box_size[2] / 2)
+    
     half_width = box_size[0] / 2
     half_depth = box_size[1] / 2
     half_height = box_size[2] / 2
-    #TODO: Check the order of the vertices and the lines
-    vertices = [
-        [position[0] - half_width, position[1] - half_depth, position[2] - half_height],  # 0
-        [position[0] + half_width, position[1] - half_depth, position[2] - half_height],  # 1
-        [position[0] + half_width, position[1] + half_depth, position[2] - half_height],  # 2
-        [position[0] - half_width, position[1] + half_depth, position[2] - half_height],  # 3
-        [position[0] - half_width, position[1] - half_depth, position[2] + half_height],  # 4
-        [position[0] + half_width, position[1] - half_depth, position[2] + half_height],  # 5
-        [position[0] + half_width, position[1] + half_depth, position[2] + half_height],  # 6
-        [position[0] - half_width, position[1] + half_depth, position[2] + half_height]   # 7, am I forgetting something??
-    ]
+    
+    # If the surface is not horizontal, we need to align the box with the surface
+    if not np.allclose(surface_normal, np.array([0, 0, 1])):
+        # Calculate rotation matrix to align [0,0,1] with surface_normal
+        z_axis = np.array([0, 0, 1])
+        rotation_axis = np.cross(z_axis, surface_normal)
+        
+        # If rotation axis is too small, surfaces are already aligned
+        if np.linalg.norm(rotation_axis) > 1e-6:
+            rotation_axis = rotation_axis / np.linalg.norm(rotation_axis)
+            angle = np.arccos(np.dot(z_axis, surface_normal))
+            
+            # Rodrigues rotation formula to create rotation matrix
+            K = np.array([
+                [0, -rotation_axis[2], rotation_axis[1]],
+                [rotation_axis[2], 0, -rotation_axis[0]],
+                [-rotation_axis[1], rotation_axis[0], 0]
+            ])
+            
+            rotation_matrix = (
+                np.eye(3) + 
+                np.sin(angle) * K + 
+                (1 - np.cos(angle)) * (K @ K)
+            )
+        else:
+            rotation_matrix = np.eye(3)
+            
+        # Create vertices for a standard box
+        vertices = np.array([
+            [-half_width, -half_depth, -half_height],  # 0: bottom face, left back
+            [half_width, -half_depth, -half_height],   # 1: bottom face, right back
+            [half_width, half_depth, -half_height],    # 2: bottom face, right front
+            [-half_width, half_depth, -half_height],   # 3: bottom face, left front
+            [-half_width, -half_depth, half_height],   # 4: top face, left back
+            [half_width, -half_depth, half_height],    # 5: top face, right back
+            [half_width, half_depth, half_height],     # 6: top face, right front
+            [-half_width, half_depth, half_height]     # 7: top face, left front
+        ])
+        
+        # Rotate and translate the vertices
+        rotated_vertices = []
+        for vertex in vertices:
+            # Rotate the vertex
+            rotated_vertex = rotation_matrix @ vertex
+            # Translate to the final position
+            rotated_vertex = rotated_vertex + box_center
+            rotated_vertices.append(rotated_vertex)
+        
+        vertices = rotated_vertices
+    else:
+        # Standard box vertices if no rotation needed
+        vertices = [
+            [box_center[0] - half_width, box_center[1] - half_depth, box_center[2] - half_height],  # 0
+            [box_center[0] + half_width, box_center[1] - half_depth, box_center[2] - half_height],  # 1
+            [box_center[0] + half_width, box_center[1] + half_depth, box_center[2] - half_height],  # 2
+            [box_center[0] - half_width, box_center[1] + half_depth, box_center[2] - half_height],  # 3
+            [box_center[0] - half_width, box_center[1] - half_depth, box_center[2] + half_height],  # 4
+            [box_center[0] + half_width, box_center[1] - half_depth, box_center[2] + half_height],  # 5
+            [box_center[0] + half_width, box_center[1] + half_depth, box_center[2] + half_height],  # 6
+            [box_center[0] - half_width, box_center[1] + half_depth, box_center[2] + half_height]   # 7
+        ]
     
     # 12 lines connecting the vertices
     lines = [

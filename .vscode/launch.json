@@ -2,14 +2,15 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug with debugpy",
+            "name": "Debug Stability Routine",
             "type": "debugpy",
             "request": "launch",
-            "module": "stack_a_bot.main",
+            "module": "stack_a_bot.Tests.test_stability_routine",
             "cwd": "${workspaceFolder}/..",
             "env": {
-                "PYTHONPATH": "${workspaceFolder}"
-            }
+                "PYTHONPATH": "${workspaceFolder}/.."
+            },
+            "args": ["C:\\Users\\User\\WPI\\Spring_courses\\Capstone\\output\\dust3r_point_cloud_20250407_164506.ply"]
         }
     ]
 }
