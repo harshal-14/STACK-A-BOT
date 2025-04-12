@@ -1,13 +1,15 @@
 """
-Add actual docustring to this...
+Project Code for WPI Robotic Engineering Capstone Project '25.
+This file contains the business logic for our stacking procedure. 
+    Designed to work on either a physical THOR robot system or in a simulated pybullet environment. 
+    Routines (discrete actions taken by the system) are scheduled and executed FIFO.
+    Additional tasks handled in the background include safety monitoring and telemetry logging (WIP) 
 """
 
 import argparse
 import numpy as np
-import sys
-import os
 
-from .Components.SingletonRegistry import * # very important line
+from .Components.SingletonRegistry import *
 from .Runtime_Handling import RoutineScheduler
 from .Runtime_Handling.Routines.Manipulation import ComponentBringup, ComponentShutdown, LinearInterpolationJS, LinearInterpolationTS
 from .Runtime_Handling.Routines.Perception import EnvironmentSetup

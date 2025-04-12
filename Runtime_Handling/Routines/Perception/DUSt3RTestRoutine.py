@@ -33,19 +33,6 @@ class DUSt3RTestRoutine(Routine):
         self.point_cloud = None
         self.camera = None
     
-    # Bridge methods for RoutineScheduler, useful maintaining Routine schedular and 
-    def _init(self, prev_outputs):
-        return self.init(prev_outputs)
-        
-    def _loop(self):
-        return self.loop()
-        
-    def _end(self):
-        return self.end()
-        
-    def _handle_fault(self, prev_status=None):
-        return self.handle_fault(prev_status)
-    
     def init(self, prev_outputs, parameters = None) -> Status:
         """Initialize and get camera reference."""
         try:
