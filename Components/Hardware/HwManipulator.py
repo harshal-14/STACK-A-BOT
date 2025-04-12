@@ -75,6 +75,18 @@ class HwManipulator(Manipulator):
         except Exception as e:
             print(f"Exception Thrown: {e}")
             return -1
+        port = self.get_serial_port()
+        if port == []:
+            print("Unable to locate open serial port.")
+            return -1
+        elif len(port > 1):
+            print(f"WARNING: More than one potential serial port matches for HW Manipulator.\n",
+                    f"\t Trying with '{port[0]}'")
+        try:
+            self.connect(kwargs={"port": port[0]})
+        except Exception as e:
+            print(f"Exception Thrown: {e}")
+            return -1
         return 0
 
     def disconnect(self, **kwargs) -> int:
