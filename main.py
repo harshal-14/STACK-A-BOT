@@ -85,3 +85,6 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
     main(args)
+
+
+# Investigate where the end effector ends up at the zero position.
