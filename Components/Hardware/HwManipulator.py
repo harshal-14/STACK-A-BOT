@@ -44,7 +44,7 @@ class HwManipulator(Manipulator):
         self.connected = False
         self.current_position = None
         # Threading objects
-        self.position_thread = threading.Thread(None, self.update_position, "Position thread")
+        self.position_thread = threading.Thread(None, self.update_joint_values, "Position thread")
         self._pos_lock = threading.Lock()
         self._rw_lock = threading.Lock()
 

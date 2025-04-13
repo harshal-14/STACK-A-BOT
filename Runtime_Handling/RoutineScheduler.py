@@ -16,7 +16,7 @@ class RoutineScheduler():
         The outputs from current job are fed as inputs to the next job in the queue.     
     """
 
-    def __init__(self, initial_routines):
+    def __init__(self, initial_routines=[]):
         self._routine_queue = []
         self._routine_queue.extend(initial_routines)
         self._scheduler_state = SchedulerState.INIT

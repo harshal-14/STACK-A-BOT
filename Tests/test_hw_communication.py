@@ -1,24 +1,35 @@
 """ File containing test functions for HW Manipulator"""
+from ..Components.Manipulator import Manipulator
 from ..Components.Hardware.HwManipulator import HwManipulator
+from ..Components.Sim.SimManipulator import SimManipulator
+from ..Components.SingletonRegistry import update_singleton_registry
+
 from ..Runtime_Handling.Routines.Manipulation.LinearInterpolationJS import LinearInterpolationJS
 from ..Runtime_Handling.Routines.Manipulation.LinearInterpolationTS import LinearInterpolationTS
+from ..Runtime_Handling.Routines.Perception.EnvironmentSetup import EnvironmentSetup
+from ..Runtime_Handling.Routines.Manipulation.ComponentBringup import ComponentBringup
 from ..Runtime_Handling.RoutineScheduler import RoutineScheduler
+
 from ..World.Geometry import Pose
 
 from scipy.spatial.transform import Rotation as R
 import time
 import numpy as np
-import cv2
+
+
 
 # Globals used for each test
 manip = HwManipulator()
+# manip = SimManipulator(urdf_file="stack_a_bot/World/models/thor_robot.urdf", meshes_dir="stack_a_bot/World/models/thor_meshes/")
+update_singleton_registry(Manipulator, manip)
+if type(manip) == SimManipulator: RoutineScheduler.run_routines([EnvironmentSetup("stack_a_bot/World/models/")])
+
 scheduler = RoutineScheduler()
 
 # Defining helper functions
 
 def powered_startup():
-    print("Power off robot, move it to the zero position, and then turn the robot back on. Press any key to continue.")
-    cv2.waitKey(0)
+    input("Power off robot, move it to the zero position, and then turn the robot back on. Press any key to continue.")
     print("Take a step back from the robot!")
     time.sleep(2)
 
@@ -32,7 +43,7 @@ def test_zero():
     assert(manip.bringup() == 0)
     time.sleep(1) # give time for the first read of a position to occur
     cur_pos = manip.get_joint_values()
-    assert(cur_pos != None)
+    assert(cur_pos is not None)
     assert(cur_pos.shape == (6,1))
     assert(np.linalg.norm(cur_pos) < 0.01)
 
@@ -65,6 +76,7 @@ def test_two():
     move_routine = LinearInterpolationJS(dst_q, 3)
 
     powered_startup()
+    assert(manip.bringup() == 0)
     RoutineScheduler.run_routines([move_routine])
 
     cur_pos = manip.get_joint_values()
@@ -86,14 +98,15 @@ def test_three():
     move_back_routine = LinearInterpolationJS(zero_q, 3)
 
     powered_startup()
+    assert(manip.bringup() == 0)
     RoutineScheduler.run_routines([move_routine, move_back_routine])
     
     cur_pos = manip.get_joint_values()
 
     assert(np.linalg.norm(cur_pos) < 0.01)
-    print("Is the end effector back into the home position [Y/n]")
-    key = cv2.waitKey(0) & 0xFF
-    assert(key == ord('Y') or key == ord('y'))
+    key = input("Is the end effector back into the home position [Y/n]")
+    print(key)
+    assert(key.lower() == 'y')
 
 def test_four():
     """[Test 4] Powered move_ts()\n
@@ -104,12 +117,13 @@ def test_four():
             * Manipulator should exhibit smooth motion in both joint space, and task space control modes.  
             * Manipulator should NOT attempt to move to a different configuration ("Elbow down" vs "Elbow up") during Task-space interpolation
     """
-    js_dst_q = np.array([[np.pi/12], [np.pi/12], [np.pi/12], [np.pi/12], [np.pi/12], [np.pi/12]])
+    js_dst_q = np.array([[-np.pi/12], [-np.pi/12], [-np.pi/12], [-np.pi/12], [-np.pi/12], [-np.pi/12]])
     ee_p1  = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [0.3,  0.0, 0.2])
     move_js = LinearInterpolationJS(js_dst_q, 3)
     move_ts = LinearInterpolationTS(ee_p1, 3)
     
     powered_startup()
+    assert(manip.bringup() == 0)
     RoutineScheduler.run_routines([move_js, move_ts])
     p1_q = manip.IK_Solver(ee_p1)
     cur_pos = manip.get_joint_values()
