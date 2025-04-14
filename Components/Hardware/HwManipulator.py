@@ -21,23 +21,17 @@ class HwManipulator(Manipulator):
         connected (bool): Status of Connection. Coupled only via calles to connect() and disconnect()
     """
 
-    """ LIST OF GCODE CMDS to test:
+    """ All of the following work:
         G0 AX BX...: Move Uninterpolated
         ?: Getting Information
-        !: feed hold
-
-        M114: Get current Position - alternative to ?
-        M0: Stop  - alternative to !
-
-        M117: Get Zero Position
-        M119: Get Endstop Status
-        G28: Go to Origin (Home)
-        M18: Disable all stepper motors
-        $H: homing?
-        $X: Kill Alarm Command?
+        !: feed hold - might want to use M1 instead
+        ~: resumes control, 
         G90: Set to Absolute Positioning 
         G91: Set to Relative Positioning
-    """
+        M1: Stop  - alternative to ! (probably works)
+        $X: Kill Alarm Command?
+        G28: Go to Origin (Home)
+        """
     def __init__(self, ):
         print("HwManipulator")
         self.connection = serial.Serial(baudrate=115200)
@@ -58,8 +52,12 @@ class HwManipulator(Manipulator):
     def connect(self, **kwargs) -> int:
         self.connection.port = kwargs["port"]
         self.connection.open()
-        self.position_thread.start()
+        # make two calls to read, one to get first empty msg, and the second to get the intro sequence
+        dataRead = str(self.connection.readline().decode("utf-8")).strip("\r\n")
+        dataRead = str(self.connection.readline().decode("utf-8")).strip("\r\n")
+        print(dataRead)
         self.connected = True
+        self.position_thread.start()
         return 0
 
     def bringup(self, **kwargs) -> int:
@@ -67,7 +65,7 @@ class HwManipulator(Manipulator):
         if port == []:
             print("Unable to locate open serial port.")
             return -1
-        elif len(port > 1):
+        elif len(port) > 1:
             print(f"WARNING: More than one potential serial port matches for HW Manipulator.\n",
                     f"\t Trying with '{port[0]}'")
         try:
@@ -79,13 +77,13 @@ class HwManipulator(Manipulator):
 
     def disconnect(self, **kwargs) -> int:
         if self.connected:
-            self.connection.close()
             self.connected = False
             try:
                 self.position_thread.join(timeout=2)
             except RuntimeError as e:
                 print(e)
                 return -1
+            self.connection.close()
         return 0
 
     def move_js(self, q_array: np.ndarray):
@@ -122,12 +120,12 @@ class HwManipulator(Manipulator):
 
         qs = joint_array_sanitizer(q_array)
         # Rapid uninterpolated movement        B and C must be equivalent...
-        message = ( f"G0 A{str(qs[0])} B{str(qs[1])} C{str(qs[1])} D{str(qs[2])}"
-                      f" X{str(qs[3])} Y{str(qs[4])} Z{str(qs[5])}\n")
+        message = ( f"G0 A{qs[0]:.3f} B{qs[1]:.3f} C{qs[1]:.3f} D{qs[2]:.3f}"
+                      f" X{qs[3]:.3f} Y{qs[4]:.3f} Z{qs[5]:.3f}\n")
         
         with self._rw_lock:
             self.connection.write(message.encode("UTF-8"))
-            retmsg = self.connection.readline()
+            retmsg = str(self.connection.readline().decode("utf-8")).strip("\r\n")
         if retmsg != "ok":
             raise RuntimeError("HWManipulator.move_js() returned something other than 'ok'.\n"
                                f"potential fault msg: {retmsg}")
@@ -140,17 +138,19 @@ class HwManipulator(Manipulator):
         """ Function to query grbl for current position, 
             \nAs reccomended by GRBL documentation, this runs at 10Hz max, any faster yields diminshing returns.
         """
+        print("Starting position thread")
         while True:
             if not self.connected: break
             with self._rw_lock:
-                self.connection.write("?\n".encode('UTF-8'))
-                dataRead = str(self.connection.readline())
+                self.connection.write("?".encode('UTF-8'))
+                dataRead = str(self.connection.readline().decode("utf-8")).strip("\r\n")
+                print(dataRead)
             if "error" in dataRead or "ALARM" in dataRead:
                 print(f"Error encountered: {dataRead}")
             else:
                 raw_data = dataRead[1:][:-1].split(",")
-                qs = np.array([[float(raw_data[1][5:][:-2])], [float(raw_data[2][:-2])], [float(raw_data[4][:-2])]
-                           [float(raw_data[5][:-2])],     [float(raw_data[6][:-2])], [float(raw_data[7][:-2])]])
+                qs = np.array([[float(raw_data[1][5:])], [float(raw_data[2])], [float(raw_data[4])], 
+                               [float(raw_data[5])], [float(raw_data[6])], [float(raw_data[7])]])
                 qs *= (np.pi/180.0)
                 with self._pos_lock:
                     self.current_position = qs
