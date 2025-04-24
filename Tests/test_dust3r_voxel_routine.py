@@ -21,7 +21,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Test DUSt3R and VoxelGrid integration")
     parser.add_argument('--output-dir', type=str, default='./output',
                       help='Directory to save output files')
-    parser.add_argument('--mode', choices=['dust3r', 'voxel', 'both'], default='both',
+    parser.add_argument('--mode', choices=['dust3r', 'voxel', 'both'], default='dust3r',
                       help='Which component to test')
     parser.add_argument('--num-angles', type=int, default=4,
                       help='Number of angles to capture for DUSt3R')
