@@ -26,6 +26,9 @@ def parse_args():
     parser.add_argument("--no_viz", action="store_true", help="Disable visualization")
     parser.add_argument("--no_orientation_fix", action="store_true", help="Disable automatic orientation fix")
     parser.add_argument("--output_dir", type=str, default="box_stacking_output", help="Directory to save output files")
+    parser.add_argument("--simple", action="store_true", help="Use simple box placement instead of optimization")
+    parser.add_argument("--pallet_dims", type=str, default=None, 
+                    help="Override pallet dimensions in format 'width,depth' in meters (e.g. '0.2,0.2')")
     
     return parser.parse_args()
 
@@ -71,6 +74,17 @@ def main():
     for i, size in enumerate(box_sizes):
         print(f"  Box {i+1}: {size[0]:.3f} x {size[1]:.3f} x {size[2]:.3f} m")
     
+    if args.pallet_dims:
+        try:
+            width, depth = map(float, args.pallet_dims.split(','))
+            known_pallet_dims = (width, depth)
+            print(f"Using provided pallet dimensions: {width}m x {depth}m")
+        except:
+            print("Invalid pallet dimensions format. Using detected dimensions.")
+            known_pallet_dims = None
+    else:
+        known_pallet_dims = None
+
     # Create output directory
     os.makedirs(args.output_dir, exist_ok=True)
     
@@ -79,7 +93,9 @@ def main():
         ply_file_path=args.input_file,
         box_sizes=box_sizes,
         visualize=not args.no_viz,
-        fix_orientation=not args.no_orientation_fix
+        fix_orientation=not args.no_orientation_fix,
+        use_simple_method=args.simple,
+        known_pallet_dims=known_pallet_dims
     )
     
     try:

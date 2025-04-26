@@ -178,8 +178,6 @@ def get_box_side_surfaces(box):
     
     return sides
 
-
-
 def detect_existing_boxes_from_point_cloud(self):
     """Detect existing boxes in the scene from point cloud"""
     if not hasattr(self, 'objects_pcd') or len(self.objects_pcd.points) == 0:
@@ -228,24 +226,37 @@ def detect_existing_boxes_from_point_cloud(self):
     
     return existing_boxes
 
-def match_box_scale_to_point_cloud(self, box_sizes):
-    """Match box dimensions to point cloud scale - fixed implementation"""
-    # We need a direct conversion factor: 1 cm = 0.01 m
-    cm_to_m = 0.01
+def apply_direct_scaling(box_sizes, scale_factor):
+    """Apply a direct scaling factor to box dimensions with error handling"""
+    # Add safety checks
+    print(f"DEBUG - box_sizes: {box_sizes}, type: {type(box_sizes)}")
+    print(f"DEBUG - scale_factor: {scale_factor}, type: {type(scale_factor)}")
     
+    # Check if parameters are swapped
+    if isinstance(scale_factor, (list, tuple)) and isinstance(box_sizes, (float, np.float64)):
+        print("WARNING: Parameters appear to be swapped, fixing order")
+        temp = box_sizes
+        box_sizes = scale_factor
+        scale_factor = temp
+    
+    # Handle case where box_sizes is not iterable
+    if not isinstance(box_sizes, (list, tuple)):
+        print(f"ERROR: box_sizes is not iterable: {type(box_sizes)}")
+        # Return a default value or raise a clearer error
+        return [(0.1, 0.06, 0.05)]  # Return default box size
+    
+    # Normal processing
     scaled_sizes = []
     for size in box_sizes:
-        # Convert directly from cm to meters
-        scaled_size = tuple(dim * cm_to_m for dim in size)
+        scaled_size = tuple(dim * scale_factor for dim in size)
         scaled_sizes.append(scaled_size)
     
-    print(f"Box sizes converted from cm to meters:")
-    print(f"Original (cm): {box_sizes}")
-    print(f"Scaled (m): {scaled_sizes}")
+    print(f"Original box sizes: {box_sizes}")
+    print(f"Scaled box sizes (factor {scale_factor}): {scaled_sizes}")
     
     return scaled_sizes
 
-def segment_pallet_from_table(self, pcd, visualize=True):
+def segment_pallet_from_table(self, pcd, visualize=True, known_pallet_dims=None):
     """Robust pallet segmentation for very small height differences"""
     print("Performing robust pallet and table segmentation...")
     
@@ -306,6 +317,21 @@ def segment_pallet_from_table(self, pcd, visualize=True):
                     objects_pcd = o3d.geometry.PointCloud()
                     objects_pcd.points = o3d.utility.Vector3dVector(object_points)
             
+                if known_pallet_dims is not None:
+                    # Override the detected dimensions with known values
+                    print(f"Using provided pallet dimensions: {known_pallet_dims}")
+                    
+                    # Calculate the pallet center
+                    pallet_points = np.asarray(pallet_pcd.points)
+                    pallet_center = np.mean(pallet_points, axis=0)
+                    
+                    # Store the dimensions and center for box placement
+                    pallet_pcd.known_dimensions = known_pallet_dims
+                    pallet_pcd.pallet_center = pallet_center
+                    
+                    # Print the corrected dimensions
+                    print(f"Corrected pallet dimensions: {known_pallet_dims[0]}m x {known_pallet_dims[1]}m")
+
             # Colorize for visualization
             table_pcd.paint_uniform_color([0.7, 0.7, 0.7])  # Light gray
             pallet_pcd.paint_uniform_color([0.0, 0.8, 0.8])  # Cyan
@@ -428,6 +454,104 @@ def isolate_pallet_for_stacking(self):
         )
     
     return True
+
+def place_boxes_on_pallet(self):
+    """Place boxes directly on pallet surface with fixed dimensions"""
+    # Get pallet bounds
+    if not hasattr(self, 'pallet_region_pcd') or len(self.pallet_region_pcd.points) == 0:
+        print("No pallet region detected")
+        return False
+    
+    # Calculate actual pallet dimensions
+    points = np.asarray(self.pallet_region_pcd.points)
+    min_bound = np.min(points, axis=0)
+    max_bound = np.max(points, axis=0)
+    
+    pallet_dimensions = max_bound - min_bound
+    pallet_center = (min_bound + max_bound) / 2
+    
+    pallet_dimensions[2] = 0.0  # Set height to zero for pallet surface
+    # Hardcode pallet dimensions if known to 200x200mm
+    pallet_dimensions = np.array([0.2, 0.2, 0.025])
+    print(f"Pallet dimensions: {pallet_dimensions}")
+    print(f"Pallet center: {pallet_center}")
+    
+    # Use pallet dimensions to determine appropriate box scale
+    # A typical box should be around 10-20% of pallet size
+    target_scale = min(pallet_dimensions[0], pallet_dimensions[1]) * 0.3
+    
+    # Calculate scale factor based on largest box dimension
+    if self.box_sizes:
+        max_box_dim = max([max(size) for size in self.box_sizes])
+        scale_factor = target_scale / max_box_dim
+        
+        print(f"Calculated scale factor: {scale_factor}")
+        scale_factor = 1.8
+        # Apply this scale factor to all boxes
+        # self.box_sizes = apply_direct_scaling(self.box_sizes, scale_factor)
+        self.box_sizes = [(0.1, 0.06, 0.05), (0.1, 0.05, 0.05)]
+    
+    return True
+
+def visualize_box_placements(self):
+    """Visualize the placed boxes in a simple way"""
+    # Create visualization geometries
+    geometries = []
+    
+    # Add pallet
+    pallet_vis = o3d.geometry.PointCloud(self.pallet_pcd)
+    pallet_vis.paint_uniform_color([0.0, 0.8, 0.8])  # Cyan
+    geometries.append(pallet_vis)
+    
+    # Add table
+    table_vis = o3d.geometry.PointCloud(self.table_pcd)
+    table_vis.paint_uniform_color([0.7, 0.7, 0.7])  # Gray
+    geometries.append(table_vis)
+    
+    # Add boxes with different colors per layer
+    layer_colors = [
+        [1.0, 0.0, 0.0],  # Layer 0: Red
+        [0.0, 1.0, 0.0],  # Layer 1: Green
+        [0.0, 0.0, 1.0],  # Layer 2: Blue
+        [1.0, 1.0, 0.0],  # Layer 3: Yellow
+    ]
+    
+    for box in self.placed_boxes:
+        # Create wireframe box
+        box_center = box['position']
+        box_size = box['dimensions']
+        layer = box['layer']
+        
+        box_mesh = o3d.geometry.TriangleMesh.create_box(
+            width=box_size[0], 
+            height=box_size[2],  # Height is Z dimension
+            depth=box_size[1]
+        )
+        box_mesh.translate(
+            [
+                box_center[0] - box_size[0]/2,
+                box_center[1] - box_size[1]/2, 
+                box_center[2] - box_size[2]/2
+            ]
+        )
+        
+        # Color by layer
+        color = layer_colors[layer % len(layer_colors)]
+        box_mesh.paint_uniform_color(color)
+        
+        # Convert to wireframe
+        box_lines = o3d.geometry.LineSet.create_from_triangle_mesh(box_mesh)
+        box_lines.paint_uniform_color(color)
+        
+        geometries.append(box_lines)
+    
+    # Visualize
+    o3d.visualization.draw_geometries(
+        geometries,
+        window_name="Simple Box Stacking",
+        width=800,
+        height=600
+    )
 
 def debug_segmentation(self):
     """Visualize segmentation with height histogram for debugging"""

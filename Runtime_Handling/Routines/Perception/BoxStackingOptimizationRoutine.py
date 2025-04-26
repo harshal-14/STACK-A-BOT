@@ -16,10 +16,12 @@ from ....Algorithms.Stability.point_cloud_processor import (
 from ....Algorithms.Stability.box_stacking_utils import (
     create_box_marker,
     detect_existing_boxes_from_point_cloud,
-    match_box_scale_to_point_cloud,
+    apply_direct_scaling,
+    place_boxes_on_pallet,
     debug_segmentation,
     segment_pallet_from_table,
-    isolate_pallet_for_stacking
+    isolate_pallet_for_stacking,
+    visualize_box_placements,
 )
 
 class BoxStackingOptimizationRoutine(Routine):
@@ -36,7 +38,7 @@ class BoxStackingOptimizationRoutine(Routine):
         placed_boxes (list): Information about the placed boxes
     """
 
-    def __init__(self, ply_file_path, box_sizes=None, visualize=True, fix_orientation=True):
+    def __init__(self, ply_file_path, box_sizes=None, visualize=True, fix_orientation=True, use_simple_method=False, known_pallet_dims=None):
         """Initialize the box stacking optimization routine.
         
         Args:
@@ -63,7 +65,9 @@ class BoxStackingOptimizationRoutine(Routine):
         self.current_layer_index = 0
         self.layer_height_tolerance = 0.01 
         self.grid_resolution = 0.005
-        self.scaling_applied = False
+        self.scaling_applied = True
+        self.use_simple_method = use_simple_method
+        self.known_pallet_dims = known_pallet_dims  # Known pallet dimensions (if provided)
 
     # Bridge methods for RoutineScheduler
     def _init(self, prev_outputs):
@@ -425,7 +429,7 @@ class BoxStackingOptimizationRoutine(Routine):
         o3d.visualization.draw_geometries([pcd, coordinate_frame], 
                                         window_name=f"Point Cloud with {size}m Coordinate Frame")
 
-    def loop(self) -> Status:
+    def loop(self, use_simple_method=False) -> Status:
         """Process the point cloud and optimize box stacking."""
         try:
             # Step 1: Load and process the point cloud
@@ -439,137 +443,163 @@ class BoxStackingOptimizationRoutine(Routine):
             print("Aligning point cloud...")
             self.processed_pcd = align_point_cloud(self.processed_pcd)
             
-            # Step 3: Match box scale to point cloud
-            if not self.scaling_applied:
-                self.box_sizes = match_box_scale_to_point_cloud(self, self.box_sizes)
-                self.scaling_applied = True
-            
-            # Step 4: Segment table, pallet, and objects using height-based approach
+            # Step 3: Segment table, pallet, and objects
             print("Segmenting table, pallet, and objects...")
             self.table_pcd, self.pallet_pcd, self.objects_pcd = segment_pallet_from_table(self,
                 self.processed_pcd, 
                 visualize=self.visualize
             )
             
-            # Debug visualization of height distribution
-            debug_segmentation(self)
+            # Print detailed scene information
+            self.print_scene_details(
+                self.processed_pcd, 
+                self.pallet_pcd, 
+                self.objects_pcd, 
+                self.box_sizes
+            )
             
-            # Step 5: Focus on the pallet for stacking
-            if hasattr(self, 'pallet_pcd') and len(self.pallet_pcd.points) > 50:
-                # Isolate just the pallet region for analysis
-                if isolate_pallet_for_stacking(self):
-                    # Use the isolated pallet region for stacking
-                    self.stacking_surface = self.pallet_pcd
-                    # Use the cropped point cloud for object detection
-                    self.processed_pcd = self.pallet_region_pcd
-                    print("Using isolated pallet region for box stacking")
-                else:
-                    print("Failed to isolate pallet, using full pallet surface")
-                    self.stacking_surface = self.pallet_pcd
+            # Decide which placement method to use
+            if use_simple_method:
+                print("\n=== Using Simple Box Stacking Algorithm ===")
+                self.placed_boxes = self.simple_box_placement()
+                
+                
+                # Generate robot coordinates
+                robot_coordinates = self.get_robot_coordinates()
+                
+                # Print robot coordinates for use with the robot
+                print("\n=== ROBOT COORDINATES ===")
+                for box in robot_coordinates:
+                    print(f"Box {box['id']}: Position {box['position']}, Dimensions {box['dimensions']}")
+                
+                # Save robot coordinates to file
+                self.save_robot_coordinates(robot_coordinates)
+                
+                # Visualize if requested
+                if self.visualize and self.placed_boxes:
+                    visualize_box_placements(self)
+                    
             else:
-                print("No pallet detected, using table surface")
-                self.stacking_surface = self.table_pcd
-            
-            # Step 6: Detect existing objects/boxes in the scene
-            detected_boxes = detect_existing_boxes_from_point_cloud(self)
-            self.placed_boxes = detected_boxes.copy()  # Start with detected boxes
-            
-            print(f"Detected {len(detected_boxes)} existing boxes in the scene")
-            
-            # Step 7: Initialize layers
-            self.layers = []
-            if self.initialize_first_layer():
-                # If we have detected boxes, add them to layer 0
-                if detected_boxes:
-                    self.layers[0]['boxes'].extend(detected_boxes)
-                    print(f"Added {len(detected_boxes)} detected boxes to layer 0")
-                    
-                    # Visualize detected boxes if requested
-                    if self.visualize:
-                        self._visualize_current_stacking()
-            
-            # Step 8: Optimize box stacking for new boxes
-            print("\n=== Optimizing Box Placement for Volumetric Efficiency ===")
-            
-            # Sort boxes by base area (largest footprint first)
-            sorted_sizes = sorted(self.box_sizes, 
-                                key=lambda size: size[0] * size[1], 
-                                reverse=True)
-            
-            for i, box_size in enumerate(sorted_sizes):
-                print(f"\n==== PLACING BOX {i+1}/{len(sorted_sizes)} ====")
-                print(f"Box dimensions: {box_size}")
+                # Debug visualization of height distribution
+                debug_segmentation(self)
                 
-                # Find the best placement using layer-based approach
-                placement = self.find_optimal_box_placement(box_size)
-                
-                if placement:
-                    # Double-check for collisions before finalizing
-                    collision = self.check_collision(placement, self.placed_boxes)
-                    
-                    if collision:
-                        print("WARNING: Collision detected after placement! Skipping this box.")
-                        if self.visualize:
-                            self.visualize_collision_check(placement, self.placed_boxes, True)
-                        continue
-                        
-                    print(f"Placed box at position: {placement['position']}")
-                    print(f"Layer: {placement.get('layer_index', 0)}")
-                    print(f"Stability score: {placement.get('score', 0):.4f}")
-                    
-                    # Add to placed boxes list and current layer
-                    self.placed_boxes.append(placement)
-                    
-                    # Ensure the box is added to the correct layer
-                    layer_index = placement.get('layer_index', 0)
-                    if layer_index < len(self.layers):
-                        self.layers[layer_index]['boxes'].append(placement)
-                    
-                    # Visualize if requested
-                    if self.visualize:
-                        self._visualize_current_stacking()
-                else:
-                    print(f"Could not find a suitable placement for box {i+1}")
-                    
-                    # Try creating a new layer if we can't place in current layer
-                    if self.create_next_layer():
-                        print(f"Created new layer {self.current_layer_index}, trying again...")
-                        placement = self.find_optimal_box_placement(box_size)
-                        
-                        if placement:
-                            # Add to placed boxes list and current layer
-                            self.placed_boxes.append(placement)
-                            
-                            # Ensure the box is added to the correct layer
-                            layer_index = placement.get('layer_index', 0)
-                            if layer_index < len(self.layers):
-                                self.layers[layer_index]['boxes'].append(placement)
-                            
-                            # Visualize if requested
-                            if self.visualize:
-                                self._visualize_current_stacking()
-                        else:
-                            print(f"Still could not place box {i+1}, skipping")
+                # Step 5: Focus on the pallet for stacking
+                if hasattr(self, 'pallet_pcd') and len(self.pallet_pcd.points) > 50:
+                    # Isolate just the pallet region for analysis
+                    if isolate_pallet_for_stacking(self):
+                        # Use the isolated pallet region for stacking
+                        place_boxes_on_pallet(self)
+                        self.stacking_surface = self.pallet_pcd
+                        # Use the cropped point cloud for object detection
+                        self.processed_pcd = self.pallet_region_pcd
+                        print("Using isolated pallet region for box stacking")
                     else:
-                        print(f"Could not create a new layer, skipping box {i+1}")
-            
-            # Step 9: Calculate packing efficiency
-            self.calculate_packing_efficiency()
-            
-            # Step 10: Generate robot coordinates
-            robot_coordinates = self.get_robot_coordinates()
-            
-            # Print robot coordinates for use with the robot
-            print("\n=== ROBOT COORDINATES ===")
-            for box in robot_coordinates:
-                print(f"Box {box['id']}: Position {box['position']}, Dimensions {box['dimensions']}")
-            
-            # Save robot coordinates to file
-            self.save_robot_coordinates(robot_coordinates)
-            
-            # Final visualization
-            if self.visualize and self.placed_boxes:
-                self._visualize_final_stacking()
+                        print("Failed to isolate pallet, using full pallet surface")
+                        self.stacking_surface = self.pallet_pcd
+                else:
+                    print("No pallet detected, using table surface")
+                    self.stacking_surface = self.table_pcd
+                
+                # Step 6: Detect existing objects/boxes in the scene
+                detected_boxes = detect_existing_boxes_from_point_cloud(self)
+                self.placed_boxes = detected_boxes.copy()  # Start with detected boxes
+                
+                print(f"Detected {len(detected_boxes)} existing boxes in the scene")
+                
+                # Step 7: Initialize layers
+                self.layers = []
+                if self.initialize_first_layer():
+                    # If we have detected boxes, add them to layer 0
+                    if detected_boxes:
+                        self.layers[0]['boxes'].extend(detected_boxes)
+                        print(f"Added {len(detected_boxes)} detected boxes to layer 0")
+                        
+                        # Visualize detected boxes if requested
+                        if self.visualize:
+                            self._visualize_current_stacking()
+                
+                # Step 8: Optimize box stacking for new boxes
+                print("\n=== Optimizing Box Placement for Volumetric Efficiency ===")
+                
+                # Sort boxes by base area (largest footprint first)
+                sorted_sizes = sorted(self.box_sizes, 
+                                    key=lambda size: size[0] * size[1], 
+                                    reverse=True)
+                
+                for i, box_size in enumerate(sorted_sizes):
+                    print(f"\n==== PLACING BOX {i+1}/{len(sorted_sizes)} ====")
+                    print(f"Box dimensions: {box_size}")
+                    
+                    # Find the best placement using layer-based approach
+                    placement = self.find_optimal_box_placement(box_size)
+                    
+                    if placement:
+                        # Double-check for collisions before finalizing
+                        collision = self.check_collision(placement, self.placed_boxes)
+                        
+                        if collision:
+                            print("WARNING: Collision detected after placement! Skipping this box.")
+                            if self.visualize:
+                                self.visualize_collision_check( placement, self.placed_boxes, True)
+                            continue
+                            
+                        print(f"Placed box at position: {placement['position']}")
+                        print(f"Layer: {placement.get('layer_index', 0)}")
+                        print(f"Stability score: {placement.get('score', 0):.4f}")
+                        
+                        # Add to placed boxes list and current layer
+                        self.placed_boxes.append(placement)
+                        
+                        # Ensure the box is added to the correct layer
+                        layer_index = placement.get('layer_index', 0)
+                        if layer_index < len(self.layers):
+                            self.layers[layer_index]['boxes'].append(placement)
+                        
+                        # Visualize if requested
+                        if self.visualize:
+                            self._visualize_current_stacking()
+                    else:
+                        print(f"Could not find a suitable placement for box {i+1}")
+                        
+                        # Try creating a new layer if we can't place in current layer
+                        if self.create_next_layer():
+                            print(f"Created new layer {self.current_layer_index}, trying again...")
+                            placement = self.find_optimal_box_placement( box_size)
+                            
+                            if placement:
+                                # Add to placed boxes list and current layer
+                                self.placed_boxes.append(placement)
+                                
+                                # Ensure the box is added to the correct layer
+                                layer_index = placement.get('layer_index', 0)
+                                if layer_index < len(self.layers):
+                                    self.layers[layer_index]['boxes'].append(placement)
+                                
+                                # Visualize if requested
+                                if self.visualize:
+                                    self._visualize_current_stacking()
+                            else:
+                                print(f"Still could not place box {i+1}, skipping")
+                        else:
+                            print(f"Could not create a new layer, skipping box {i+1}")
+                
+                # Step 9: Calculate packing efficiency
+                self.calculate_packing_efficiency()
+                
+                # Step 10: Generate robot coordinates
+                robot_coordinates = self.get_robot_coordinates()
+                
+                # Print robot coordinates for use with the robot
+                print("\n=== ROBOT COORDINATES ===")
+                for box in robot_coordinates:
+                    print(f"Box {box['id']}: Position {box['position']}, Dimensions {box['dimensions']}")
+                
+                # Save robot coordinates to file
+                self.save_robot_coordinates( robot_coordinates)
+                
+                # Final visualization
+                if self.visualize and self.placed_boxes:
+                    self._visualize_final_stacking()
             
             return Status(Condition.Success)
             
@@ -578,7 +608,7 @@ class BoxStackingOptimizationRoutine(Routine):
             traceback.print_exc()
             # Create status to pass to handle_fault
             return Status(Condition.Fault, err_msg=str(e), err_type=type(e))
-            
+                
     def calculate_packing_efficiency(self):
         """Calculate and report the volumetric efficiency of the packing"""
         if not self.placed_boxes:
@@ -614,6 +644,92 @@ class BoxStackingOptimizationRoutine(Routine):
         
         # Store for reporting
         self.packing_efficiency = efficiency
+    
+    def simple_box_placement(self):
+        """Simple, deterministic box placement algorithm"""
+        # Ensure we have a segmented pallet
+        if not hasattr(self, 'pallet_pcd') or len(self.pallet_pcd.points) < 10:
+            print("Error: No pallet detected")
+            return []
+        
+        # Get pallet dimensions
+        pallet_points = np.asarray(self.pallet_pcd.points)
+        pallet_min = np.min(pallet_points, axis=0)
+        pallet_max = np.max(pallet_points, axis=0)
+        pallet_dimensions = pallet_max - pallet_min
+        pallet_height = np.mean(pallet_points[:, 2])
+        
+        print(f"Pallet dimensions: {pallet_dimensions[0]:.4f}m x {pallet_dimensions[1]:.4f}m")
+        print(f"Pallet height: {pallet_height:.4f}m")
+        
+        # Convert box sizes from cm to meters (direct conversion)
+        meter_boxes = []
+        for box in self.box_sizes:
+            # Check if box is already in meters
+            if max(box) < 0.1 :# Likely already in meters if below 0.5
+                meter_box = box
+            else:
+                # Convert from cm to m
+                meter_box = (box[0]*0.001, box[1]*0.001, box[2]*0.001)
+            meter_boxes.append(meter_box)
+        
+        print(f"Box sizes in meters: {meter_boxes}")
+        
+        # Initialize placement tracking
+        placed_boxes = []
+        current_layer = 0
+        current_x = pallet_min[0] + 0.005  # Start with small margin
+        current_y = pallet_min[1] + 0.005
+        layer_height = pallet_height
+        
+        # Place each box
+        for i, box_size in enumerate(meter_boxes):
+            width, depth, height = box_size
+            
+            # Check if box fits in current row
+            if current_x + width > pallet_max[0] - 0.005:
+                # Move to next row
+                current_x = pallet_min[0] + 0.005
+                current_y += depth + 0.005
+            
+            # Check if box fits in current layer
+            if current_y + depth > pallet_max[1] - 0.005:
+                # Move to next layer
+                current_layer += 1
+                current_x = pallet_min[0] + 0.005
+                current_y = pallet_min[1] + 0.005
+                
+                # Update layer height to the max height of boxes in previous layer
+                if placed_boxes:
+                    max_prev_height = 0
+                    for box in placed_boxes:
+                        if box['layer'] == current_layer - 1:
+                            box_top = box['position'][2] + box['dimensions'][2]/2
+                            max_prev_height = max(max_prev_height, box_top)
+                    layer_height = max_prev_height
+            
+            # Calculate position (box center)
+            box_x = current_x + width/2
+            box_y = current_y + depth/2
+            box_z = layer_height + height/2
+            
+            # Create placement
+            placement = {
+                'position': np.array([box_x, box_y, box_z]),
+                'dimensions': box_size,
+                'layer': current_layer,
+                'id': i+1
+            }
+            
+            # Add to placed boxes
+            placed_boxes.append(placement)
+            
+            # Update current_x for next box
+            current_x += width + 0.005  # 5mm spacing between boxes
+            
+            print(f"Placed box {i+1} at {placement['position']} (layer {current_layer})")
+        
+        return placed_boxes
 
     def _find_optimal_box_placement(self, box_size):
         """Find the best placement for a new box, prioritizing side-by-side on pallet first"""
@@ -1184,28 +1300,32 @@ class BoxStackingOptimizationRoutine(Routine):
 
     def initialize_first_layer(self):
         """Initialize the first layer based on pallet dimensions only"""
-        if not hasattr(self, 'stacking_surface') or len(self.stacking_surface.points) == 0:
-            print("No valid stacking surface detected")
-            return False
+        # Override pallet dimensions consistently
+        fixed_width = 0.2  # 20cm
+        fixed_depth = 0.2  # 20cm
         
-        # Get a tight bounding box of just the pallet surface
-        pallet_bbox = self.stacking_surface.get_axis_aligned_bounding_box()
-        min_bound = pallet_bbox.min_bound
-        max_bound = pallet_bbox.max_bound
+        if hasattr(self, 'pallet_pcd') and len(self.pallet_pcd.points) > 0:
+            # Calculate pallet height
+            pallet_points = np.asarray(self.pallet_pcd.points)
+            pallet_height = np.mean(pallet_points[:, 2])
+            
+            # Get pallet center (use detected center, not hardcoded)
+            min_bound = np.min(pallet_points, axis=0)
+            max_bound = np.max(pallet_points, axis=0)
+            pallet_center = (min_bound + max_bound) / 2
+        else:
+            print("Warning: No pallet detected, using default values")
+            pallet_height = -0.14  # Use value from previous runs
+            pallet_center = np.array([0, 0, pallet_height])
         
-        # Use a very small margin to maximize pallet usage
-        margin = 0.01  # Just 1cm margin
+        # Use fixed dimensions with detected height
+        x_min = pallet_center[0] - fixed_width/2 + 0.01  # 1cm margin
+        x_max = pallet_center[0] + fixed_width/2 - 0.01
+        y_min = pallet_center[1] - fixed_depth/2 + 0.01
+        y_max = pallet_center[1] + fixed_depth/2 - 0.01
         
-        x_min = min_bound[0] + margin
-        x_max = max_bound[0] - margin
-        y_min = min_bound[1] + margin
-        y_max = max_bound[1] - margin
-        
-        # Use the exact pallet height
-        pallet_height = np.mean(np.asarray(self.stacking_surface.points)[:, 2])
-        
-        print(f"Initializing layer on pallet at height {pallet_height:.4f}")
-        print(f"Pallet dimensions: {x_max-x_min:.3f}m x {y_max-y_min:.3f}m")
+        print(f"Initializing layer with fixed pallet dimensions: {fixed_width}m x {fixed_depth}m")
+        print(f"Pallet center: {pallet_center}")
         
         # Create first layer
         self.layers.append({
