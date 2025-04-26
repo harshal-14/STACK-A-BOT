@@ -8,14 +8,63 @@ This file contains the business logic for our stacking procedure.
 
 import argparse
 import numpy as np
+import os
 
 from .Components.SingletonRegistry import *
 from .Runtime_Handling import RoutineScheduler
 from .Runtime_Handling.Routines.Manipulation import ComponentBringup, ComponentShutdown, LinearInterpolationJS, LinearInterpolationTS
 from .Runtime_Handling.Routines.Perception import EnvironmentSetup
 from .World.Geometry import Pose
+from .Runtime_Handling.Routines.Manipulation.MoveAndCapture import MoveAndCapture
 
 from scipy.spatial.transform import Rotation as R
+
+# TODO: check with @Riley B. if we can use the new move and capture routine for the camera.
+# def main(args:dict):
+#     """Setup components and environment"""
+#     initial_routines = []
+#     if args.mode == 'SIM':
+#         initial_routines.append(EnvironmentSetup.EnvironmentSetup(args.URDF_path))
+#     initial_routines.append(ComponentBringup.ComponentBringup(args))
+
+#     """Add all routines that should run during operation"""
+#     home_q = np.array([[0], [0], [-np.pi/2], [0], [-np.pi/4], [0]])
+#     ee_p1  = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [0.3,  0.0, 0.2]) 
+#     ee_p2 = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [0.0,  0.3, 0.2]) 
+#     ee_p3 = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [-0.3, 0.0, 0.2])
+#     # movements in JS
+#     initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[-np.pi/2], [0], [0], [0], [0], [0]]), 2.5))
+#     initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [-np.pi/2], [0], [0], [0], [0]]), 2.5))
+#     initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [-np.pi/2], [0], [0], [0]]), 2.5))
+#     initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [0], [-np.pi/2], [0], [0]]), 2.5))
+#     initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [0], [0], [-np.pi/2], [0]]), 2.5))
+#     initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [-np.pi/2]]), 2.5))
+#     initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(home_q, 2.5))
+#     # movements in TS
+#     initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p1, 2))
+#     initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p2, 2))
+#     initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p3, 2))
+#     initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p2, 2))
+#     initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p1, 2))
+#     scheduler = RoutineScheduler.RoutineScheduler(initial_routines)
+#     while(scheduler.has_routines()):
+#         scheduler.run()
+#         # add any other runtime logic that program needs. 
+#         # These could be things like the safety daemon, watchdog?, telemetry capture?
+#     while(1):
+#         pass
+#     """After we have finished all planned Routines, we should move to a safe position, and disconnect."""
+#     #TODO, write routine to save any data to disk (images, telemetry, point clouds...) 
+#     #TODO: write routine to move robot to safe positon for shutdown
+#     home_robot2 = LinearInterpolationJS.LinearInterpolationJS(home_q, 3)
+#     # gracefully disconnects from components.
+#     shutdown = ComponentShutdown.ComponentShutdown()
+    
+#     scheduler.add_routine(home_robot2)
+#     scheduler.add_routine(shutdown)
+#     while(scheduler.has_routines()):
+#         scheduler.run()
+#     exit(0)
 
 def main(args:dict):
     """Setup components and environment"""
@@ -26,38 +75,34 @@ def main(args:dict):
 
     """Add all routines that should run during operation"""
     home_q = np.array([[0], [0], [-np.pi/2], [0], [-np.pi/4], [0]])
-    ee_p1  = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [0.3,  0.0, 0.2]) 
+    ee_p1 = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [0.3,  0.0, 0.2]) 
     ee_p2 = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [0.0,  0.3, 0.2]) 
     ee_p3 = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [-0.3, 0.0, 0.2])
-    # movements in JS
-    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[-np.pi/2], [0], [0], [0], [0], [0]]), 2.5))
-    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [-np.pi/2], [0], [0], [0], [0]]), 2.5))
-    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [-np.pi/2], [0], [0], [0]]), 2.5))
-    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [0], [-np.pi/2], [0], [0]]), 2.5))
-    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [0], [0], [-np.pi/2], [0]]), 2.5))
-    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [-np.pi/2]]), 2.5))
+    
+    # First move to home position (without capturing)
     initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(home_q, 2.5))
-    # movements in TS
+    
+    output_dir = os.path.join(args.output_dir, "robot_view_captures")
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Use MoveAndCapture for positions where you want images
+    initial_routines.append(MoveAndCapture(ee_p1, 2, output_dir, "front_view"))
+    initial_routines.append(MoveAndCapture(ee_p2, 2, output_dir, "right_view"))
+    initial_routines.append(MoveAndCapture(ee_p3, 2, output_dir, "left_view"))
+    initial_routines.append(MoveAndCapture(ee_p2, 2, output_dir, "top_view"))
+    
+    # Return to home position (without capturing)
     initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p1, 2))
-    initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p2, 2))
-    initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p3, 2))
-    initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p2, 2))
-    initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p1, 2))
+    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(home_q, 2.5))
+    
     scheduler = RoutineScheduler.RoutineScheduler(initial_routines)
     while(scheduler.has_routines()):
         scheduler.run()
         # add any other runtime logic that program needs. 
         # These could be things like the safety daemon, watchdog?, telemetry capture?
-    while(1):
-        pass
-    """After we have finished all planned Routines, we should move to a safe position, and disconnect."""
-    #TODO, write routine to save any data to disk (images, telemetry, point clouds...) 
-    #TODO: write routine to move robot to safe positon for shutdown
-    home_robot2 = LinearInterpolationJS.LinearInterpolationJS(home_q, 3)
-    # gracefully disconnects from components.
-    shutdown = ComponentShutdown.ComponentShutdown()
     
-    scheduler.add_routine(home_robot2)
+    """After we have finished all planned Routines, we should move to a safe position, and disconnect."""
+    shutdown = ComponentShutdown.ComponentShutdown()
     scheduler.add_routine(shutdown)
     while(scheduler.has_routines()):
         scheduler.run()
