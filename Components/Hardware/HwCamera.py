@@ -23,7 +23,6 @@ class HwCamera(Camera):
         depth_queue(dai.DataOutputQueue): Queue for depth frames
     """
 
-    # TODO: Implement camera integration.
     def __init__(self):
         """Initialize the HwCamera class without connecting to a device."""
         print("------------Initializing HwCamera------------")
@@ -299,3 +298,33 @@ class HwCamera(Camera):
             return []
         
         return image_paths
+    
+    def capture_images(self, filename = None, output_dir = '.'):
+        """"
+        Capture images from the OAK-D camera and save them to a specified directory.
+        Args: 
+            filename (str): Name of the file to save the captured images.
+            output_dir (str): Directory to save the captured images.
+
+        Returns:
+            str: Path to the saved image file.
+        """
+        if not self.device or not self.rgb_queue:
+            raise RuntimeError("Camera not connected")
+            
+        # Create output directory if it doesn't exist
+        os.makedirs(output_dir, exist_ok=True)
+
+        if filename is None:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"image_{timestamp}"
+
+        image_path = os.path.join(output_dir, f"{filename}.jpg")
+        print(f"Image will be saved to: {image_path}") ## Check if this is correct!
+
+        #get a fresh frame
+        rgb_data = self.rgb_queue.get()
+        rgb_frame = rgb_data.getCvFrame()
+        cv2.imwrite(image_path, rgb_frame)
+
+        return image_path
