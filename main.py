@@ -11,7 +11,8 @@ import numpy as np
 
 from .Components.SingletonRegistry import *
 from .Runtime_Handling import RoutineScheduler
-from .Runtime_Handling.Routines.Manipulation import ComponentBringup, ComponentShutdown, LinearInterpolationJS, LinearInterpolationTS
+from .Runtime_Handling.Routines.Manipulation import ComponentBringup, ComponentShutdown
+from .Runtime_Handling.Routines.Manipulation.LinearInterpolationJS import LinearInterpolationJS
 from .Runtime_Handling.Routines.Perception import EnvironmentSetup
 from .World.Geometry import Pose
 
@@ -25,25 +26,37 @@ def main(args:dict):
     initial_routines.append(ComponentBringup.ComponentBringup(args))
 
     """Add all routines that should run during operation"""
-    home_q = np.array([[0], [0], [-np.pi/2], [0], [-np.pi/4], [0]])
-    ee_p1  = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [0.3,  0.0, 0.2]) 
-    ee_p2 = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [0.0,  0.3, 0.2]) 
-    ee_p3 = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [-0.3, 0.0, 0.2])
-    # movements in JS
-    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[-np.pi/2], [0], [0], [0], [0], [0]]), 2.5))
-    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [-np.pi/2], [0], [0], [0], [0]]), 2.5))
-    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [-np.pi/2], [0], [0], [0]]), 2.5))
-    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [0], [-np.pi/2], [0], [0]]), 2.5))
-    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [0], [0], [-np.pi/2], [0]]), 2.5))
-    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [-np.pi/2]]), 2.5))
-    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(home_q, 2.5))
-    # movements in TS
-    initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p1, 2))
-    initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p2, 2))
-    initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p3, 2))
-    initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p2, 2))
-    initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p1, 2))
-    scheduler = RoutineScheduler.RoutineScheduler(initial_routines)
+    # home_q = np.array([[0], [0], [-np.pi/2], [0], [-np.pi/4], [0]])
+    # ee_p1  = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [0.3,  0.0, 0.2]) 
+    # ee_p2 = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [0.0,  0.3, 0.2]) 
+    # ee_p3 = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [-0.3, 0.0, 0.2])
+
+    # movements Half way                                        30, 30
+    initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), 2.5))
+    
+    # scotts Algo goes here
+    # initial_routines.append(...)
+
+    # goe almost all the way down                           40, 40 - slower speed 
+    initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), 5))
+    
+    # Chirags pick routine                                  40 50
+    # initial_routines.append(...)
+
+    # go to home ish with rotated Art 4                     Zeros 
+    initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), 5))
+    # Rotate with Art 4
+    initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), 5))
+
+    # goe almost all the way down                           -30, 30
+    initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), 2.5))
+
+    # Chirags place routine 
+    # initial_routines.append(...)
+    
+    
+
+    initial_routines.append(LinearInterpolationJS(home_q, 2.5))
     while(scheduler.has_routines()):
         scheduler.run()
         # add any other runtime logic that program needs. 
