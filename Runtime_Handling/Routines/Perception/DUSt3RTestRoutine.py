@@ -9,6 +9,8 @@ from ....Components.Camera import Camera
 from ....Components.Manipulator import Manipulator
 from ....World.Geometry import Pose, Point
 from ....Runtime_Handling.Routines.Manipulation.LinearInterpolationTS import LinearInterpolationTS
+from ....Runtime_Handling.Routines.Manipulation.MoveAndCapture import MoveAndCaptureJS
+from ....Runtime_Handling.Routines.Manipulation.LinearInterpolationJS import LinearInterpolationJS
 from scipy.spatial.transform import Rotation as R
 
 import os
@@ -130,7 +132,9 @@ class DUSt3RTestRoutine(Routine):
     def loop(self) -> Status:
         """Run DUSt3R to generate point cloud using images captured at different robot positions."""
         try:
+            # Get image paths if directory is specified
             if self.image_dir:
+                # Use existing images
                 from pathlib import Path
                 image_paths = []
                 for ext in ['.jpg', '.jpeg', '.png']:
@@ -148,6 +152,7 @@ class DUSt3RTestRoutine(Routine):
                 print("Beginning automated multi-view capture sequence...")
                 image_paths = []
                 
+                # Create session directory
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 session_dir = os.path.join(self.output_dir, f"session_{timestamp}")
                 os.makedirs(session_dir, exist_ok=True)
@@ -155,62 +160,78 @@ class DUSt3RTestRoutine(Routine):
                 # Get references to components
                 manipulator = get_singleton(Manipulator)
                 
-                # Define view positions (robot end-effector poses)
-                # These would be calibrated poses that give good coverage of the object
-                # Create predefined poses for different views around the object
-                # Assuming object is at center position [0, 0, 0.2]
-                object_center = [0, 0, 0.2]
-                radius = 0.4  # Distance from object
-                height = 0.3  # Camera height
-                
-                view_poses = []
-                for i in range(self.num_angles):
-                    angle = (i * 2 * np.pi) / self.num_angles
-                    x = object_center[0] + radius * np.cos(angle)
-                    y = object_center[1] + radius * np.sin(angle)
-                    z = object_center[2] + height
+                # Define joint configurations for different views
+                view_joint_configs = [
+                    # Base, Shoulder, Elbow, Wrist1, Wrist2, Wrist3
+                    # Front view
+                    np.array([[0], [0], [-np.pi/2], [0], [-np.pi/4], [0]]),
                     
-                    # Point camera toward object center
-                    rotation = R.from_euler('xyz', [0, np.pi/4, angle]).as_matrix()
-                    view_poses.append(Pose(rotation, [x, y, z]))
+                    # Right-front view
+                    np.array([[np.pi/4], [0], [-np.pi/2], [0], [-np.pi/4], [0]]),
+                    
+                    # Right view
+                    np.array([[np.pi/2], [0], [-np.pi/2], [0], [-np.pi/4], [0]]),
+                    
+                    # Right-back view
+                    # np.array([[3*np.pi/4], [0], [-np.pi/2], [0], [-np.pi/4], [0]]),
+                    
+                    # Back view (if accessible)
+                    # np.array([[np.pi], [0], [-np.pi/2], [0], [-np.pi/4], [0]]),
+                    
+                    # Left-back view
+                    # np.array([[-3*np.pi/4], [0], [-np.pi/2], [0], [-np.pi/4], [0]]),
+                    
+                    # Left view
+                    np.array([[-np.pi/2], [0], [-np.pi/2], [0], [-np.pi/4], [0]]),
+                    
+                    # Left-front view
+                    np.array([[-np.pi/4], [0], [-np.pi/2], [0], [-np.pi/4], [0]]),
+                ]
                 
-                # Move to each position and capture
-                for i, pose in enumerate(view_poses):
+                # Trim the config list to match the requested number of angles
+                view_joint_configs = view_joint_configs[:self.num_angles]
+                
+                # Use MoveAndCaptureJS for each position
+                for i, joint_config in enumerate(view_joint_configs):
                     try:
                         print(f"Moving to view position {i+1}/{self.num_angles}")
                         
-                        # Create a LinearInterpolationTS Routine to move to the position
-                        move_routine = LinearInterpolationTS(pose, travel_time=2.0)
+                        # Create a MoveAndCaptureJS Routine
+                        move_and_capture = MoveAndCaptureJS(
+                            dst_q=joint_config,
+                            travel_time=2.0,
+                            output_dir=session_dir,
+                            position_name=f"view{i+1:02d}"
+                        )
                         
                         # Initialize and run the routine
-                        move_routine.init(None)
-                        status = move_routine.loop()
+                        move_and_capture.init(None)
                         
-                        # Keep looping until movement is complete
-                        while status.cond == Condition.In_Progress:
-                            status = move_routine.loop()
+                        # Keep looping until movement and capture are complete
+                        while True:
+                            status = move_and_capture.loop()
+                            if status.cond == Condition.Success:
+                                break
+                            elif status.cond == Condition.Fault:
+                                raise RuntimeError(f"MoveAndCapture failed: {status.err_msg}")
                             time.sleep(0.1)  # Small delay to prevent CPU hogging
                         
-                        # Finish the movement
-                        move_routine.end()
-                        
-                        # Allow time for vibrations to settle
-                        time.sleep(0.5)
-                        
-                        # Capture image
-                        filename = f"view{i+1:02d}"
-                        image_path = self.camera.capture_image(filename=filename, output_dir=session_dir)
-                        image_paths.append(image_path)
-                        print(f"Captured image at view position {i+1}/{self.num_angles}")
+                        # Finish the routine
+                        move_and_capture.end()
+                        image_path = os.path.join(session_dir, f"view{i+1:02d}.jpg")
+                        if os.path.exists(image_path):
+                            image_paths.append(image_path)
+                        else:
+                            print(f"Warning: Expected image not found at {image_path}")
                         
                     except Exception as e:
                         print(f"Error at view position {i+1}: {str(e)}")
                         import traceback
                         traceback.print_exc()
                 
-                # Return to a safe position after capturing
-                home_pose = manipulator.FK_Solver(np.array([[0], [0], [-np.pi/2], [0], [-np.pi/4], [0]]))
-                home_routine = LinearInterpolationTS(home_pose, travel_time=2.0)
+                # Return to home position after capturing
+                home_joints = np.array([[0], [0], [-np.pi/2], [0], [-np.pi/4], [0]])
+                home_routine = LinearInterpolationJS(home_joints, travel_time=2.0)
                 home_routine.init(None)
                 
                 while home_routine.loop().cond == Condition.In_Progress:
@@ -231,7 +252,6 @@ class DUSt3RTestRoutine(Routine):
                 output_dir=self.output_dir
             )
             
-            # Check result
             if self.point_cloud is None or len(self.point_cloud) == 0:
                 return Status(Condition.Fault, 
                             err_msg="Failed to generate point cloud", 

@@ -14,57 +14,11 @@ from .Components.SingletonRegistry import *
 from .Runtime_Handling import RoutineScheduler
 from .Runtime_Handling.Routines.Manipulation import ComponentBringup, ComponentShutdown, LinearInterpolationJS, LinearInterpolationTS
 from .Runtime_Handling.Routines.Perception import EnvironmentSetup
+from .Runtime_Handling.Routines.Perception.DUSt3RTestRoutine import DUSt3RTestRoutine
 from .World.Geometry import Pose
-from .Runtime_Handling.Routines.Manipulation.MoveAndCapture import MoveAndCapture
+from .Runtime_Handling.Routines.Manipulation.MoveAndCapture import MoveAndCaptureJS
 
 from scipy.spatial.transform import Rotation as R
-
-# TODO: check with @Riley B. if we can use the new move and capture routine for the camera.
-# def main(args:dict):
-#     """Setup components and environment"""
-#     initial_routines = []
-#     if args.mode == 'SIM':
-#         initial_routines.append(EnvironmentSetup.EnvironmentSetup(args.URDF_path))
-#     initial_routines.append(ComponentBringup.ComponentBringup(args))
-
-#     """Add all routines that should run during operation"""
-#     home_q = np.array([[0], [0], [-np.pi/2], [0], [-np.pi/4], [0]])
-#     ee_p1  = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [0.3,  0.0, 0.2]) 
-#     ee_p2 = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [0.0,  0.3, 0.2]) 
-#     ee_p3 = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [-0.3, 0.0, 0.2])
-#     # movements in JS
-#     initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[-np.pi/2], [0], [0], [0], [0], [0]]), 2.5))
-#     initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [-np.pi/2], [0], [0], [0], [0]]), 2.5))
-#     initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [-np.pi/2], [0], [0], [0]]), 2.5))
-#     initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [0], [-np.pi/2], [0], [0]]), 2.5))
-#     initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [0], [0], [-np.pi/2], [0]]), 2.5))
-#     initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [-np.pi/2]]), 2.5))
-#     initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(home_q, 2.5))
-#     # movements in TS
-#     initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p1, 2))
-#     initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p2, 2))
-#     initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p3, 2))
-#     initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p2, 2))
-#     initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p1, 2))
-#     scheduler = RoutineScheduler.RoutineScheduler(initial_routines)
-#     while(scheduler.has_routines()):
-#         scheduler.run()
-#         # add any other runtime logic that program needs. 
-#         # These could be things like the safety daemon, watchdog?, telemetry capture?
-#     while(1):
-#         pass
-#     """After we have finished all planned Routines, we should move to a safe position, and disconnect."""
-#     #TODO, write routine to save any data to disk (images, telemetry, point clouds...) 
-#     #TODO: write routine to move robot to safe positon for shutdown
-#     home_robot2 = LinearInterpolationJS.LinearInterpolationJS(home_q, 3)
-#     # gracefully disconnects from components.
-#     shutdown = ComponentShutdown.ComponentShutdown()
-    
-#     scheduler.add_routine(home_robot2)
-#     scheduler.add_routine(shutdown)
-#     while(scheduler.has_routines()):
-#         scheduler.run()
-#     exit(0)
 
 def main(args:dict):
     """Setup components and environment"""
@@ -75,25 +29,43 @@ def main(args:dict):
 
     """Add all routines that should run during operation"""
     home_q = np.array([[0], [0], [-np.pi/2], [0], [-np.pi/4], [0]])
-    ee_p1 = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [0.3,  0.0, 0.2]) 
-    ee_p2 = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [0.0,  0.3, 0.2]) 
-    ee_p3 = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [-0.3, 0.0, 0.2])
     
-    # First move to home position (without capturing)
-    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(home_q, 2.5))
-    
-    output_dir = os.path.join(args.output_dir, "robot_view_captures")
-    os.makedirs(output_dir, exist_ok=True)
-    
-    # Use MoveAndCapture for positions where you want images
-    initial_routines.append(MoveAndCapture(ee_p1, 2, output_dir, "front_view"))
-    initial_routines.append(MoveAndCapture(ee_p2, 2, output_dir, "right_view"))
-    initial_routines.append(MoveAndCapture(ee_p3, 2, output_dir, "left_view"))
-    initial_routines.append(MoveAndCapture(ee_p2, 2, output_dir, "top_view"))
-    
-    # Return to home position (without capturing)
-    initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p1, 2))
-    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(home_q, 2.5))
+    # If DUSt3R is enabled, add the DUSt3R routine
+    if args.use_dust3r:
+        dust3r_routine = DUSt3RTestRoutine(
+            num_angles=args.num_angles,
+            model_name=args.model,
+            output_dir=args.output_dir,
+            image_dir=args.image_dir  # This will use existing images if specified
+        )
+        initial_routines.append(dust3r_routine)
+    else:
+        # Original movement test routines for basic functionality
+        # First move to home position (without capturing)
+        initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(home_q, 2.5))
+        
+        output_dir = os.path.join(args.output_dir, "robot_view_captures")
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # Define joint configurations for different views
+        view_joint_configs = [
+            # Front view
+            np.array([[0], [0], [-np.pi/2], [0], [-np.pi/4], [0]]),
+            # Right view
+            np.array([[np.pi/4], [0], [-np.pi/2], [0], [-np.pi/4], [0]]),
+            # Back view
+            np.array([[np.pi/2], [0], [-np.pi/2], [0], [-np.pi/4], [0]]),
+            # Left view
+            np.array([[-np.pi/4], [0], [-np.pi/2], [0], [-np.pi/4], [0]]),
+        ]
+        
+        # Use MoveAndCaptureJS for positions where you want images
+        for i, joint_config in enumerate(view_joint_configs):
+            position_name = ["front_view", "right_view", "back_view", "left_view"][i]
+            initial_routines.append(MoveAndCaptureJS(joint_config, 2, output_dir, position_name))
+        
+        # Return to home position (without capturing)
+        initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(home_q, 2.5))
     
     scheduler = RoutineScheduler.RoutineScheduler(initial_routines)
     while(scheduler.has_routines()):
@@ -102,8 +74,14 @@ def main(args:dict):
         # These could be things like the safety daemon, watchdog?, telemetry capture?
     
     """After we have finished all planned Routines, we should move to a safe position, and disconnect."""
+    # Return to home position
+    home_robot2 = LinearInterpolationJS.LinearInterpolationJS(home_q, 3)
+    scheduler.add_routine(home_robot2)
+    
+    # Gracefully disconnect from components
     shutdown = ComponentShutdown.ComponentShutdown()
     scheduler.add_routine(shutdown)
+    
     while(scheduler.has_routines()):
         scheduler.run()
     exit(0)
@@ -118,15 +96,15 @@ def parse_args():
     parser.add_argument('--mode', type=str, default='SIM', help='Which interface to use. Options: "SIM" (default), "HW"')
     parser.add_argument('--URDF_path', type=str, default='stack_a_bot/World/models/', help="Filepath of the robot's urdf. ")
     parser.add_argument('--meshes_dir', type=str, default='stack_a_bot/World/models/thor_meshes/', help="Directory where the robot's mesh files live. Useful for sim or digital twin.")
-    # Add DUSt3R and VoxelGrid arguments, to be later on used for the perception system
+    # Add DUSt3R and VoxelGrid arguments
     parser.add_argument('--use_dust3r', action='store_true', help="Whether to use DUSt3R for perception")
     parser.add_argument('--num_angles', type=int, default=4, help="Number of angles for DUSt3R perception")
-    parser.add_argument('--model', type=str, default='dust3r_v1', help="Model name for DUSt3R")
+    parser.add_argument('--model', type=str, default='naver/DUSt3R_ViTLarge_BaseDecoder_512_dpt', help="Model name for DUSt3R")
     parser.add_argument('--output_dir', type=str, default='./output', help="Directory to save outputs")
+    parser.add_argument('--image_dir', type=str, default=None, help="Directory with existing images (default: capture new images)")
     parser.add_argument('--use_voxel_grid', action='store_true', help="Whether to use VoxelGrid for perception")
     parser.add_argument('--voxel_size', type=float, default=0.01, help="Voxel size for VoxelGrid")
-    ## TODO add other args we want in this program...
-
+    
     return parser.parse_args()
 
 if __name__ == '__main__':
