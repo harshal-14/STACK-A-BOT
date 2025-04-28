@@ -40,14 +40,23 @@ class HwManipulator(Manipulator):
         self.hw_interface = get_singleton(HwInterface)
         if not self.connect():
             return -1
-        elif len(port) > 1:
-            print(f"WARNING: More than one potential serial port matches for HW Manipulator.\n",
-                    f"\t Trying with '{port[0]}'")
-        try:
-            self.connect(kwargs={"port": port[0]})
-        except Exception as e:
-            print(f"Exception Thrown: {e}")
+        # wait until we get a successful readout of our current position
+        position_iter_attempts = 0
+        while position_iter_attempts < MAX_ATTEMPTS:
+            with self._pos_lock:
+                if(self.current_position is not None): break
+            position_iter_attempts+=1
+            time.sleep(0.5)
+
+        if position_iter_attempts == MAX_ATTEMPTS:
+            print("Unable to read position from Manipulator")
             return -1
+        return 0
+    
+    def connect(self, **kwargs) -> int:
+        if not self.hw_interface.connect_device():
+            return -1
+        self.position_thread.start()
         return 0
 
     def disconnect(self, **kwargs) -> int:
