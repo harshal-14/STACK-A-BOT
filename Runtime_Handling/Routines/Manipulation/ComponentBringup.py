@@ -1,6 +1,6 @@
 from ..Routine import Routine
 from .. ..Components import Camera, EndEffector, Manipulator, SingletonRegistry, Component
-from .. ..Components.Hardware import HwCamera, HwEndEffector, HwManipulator
+from .. ..Components.Hardware import HwCamera, HwEndEffector, HwManipulator, HwInterface
 from .. ..Components.Sim import SimCamera, SimEndEffector, SimManipulator
 from .. .Status import Status, Condition
 class ComponentBringup(Routine):
@@ -28,6 +28,8 @@ class ComponentBringup(Routine):
             ee = SimEndEffector.SimEndEffector()
             manip = SimManipulator.SimManipulator(self.args.URDF_path+"thor_robot.urdf",self.args.meshes_dir)
         elif self.args.mode == 'HW':
+            hw_interface = HwInterface.HwInterface()
+            # SingletonRegistry.update_singleton_registry(HwInterface.HwInterface, hw_interface)
             cam = HwCamera.HwCamera() 
             ee = HwEndEffector.HwEndEffector()
             manip = HwManipulator.HwManipulator()
