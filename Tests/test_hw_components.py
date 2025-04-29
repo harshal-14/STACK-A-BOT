@@ -194,7 +194,7 @@ def test_manip_one():
 
     assert(manip.disconnect() == 0)
 
-def test_manip_two():
+def test_manip_two(): # TODO, rewrite to ensure that this does not break everything. 
     """[Test 2] Powered move_js()\n
         Turn off Power\n
         Move Robot to "Home Position", and Turn power on\n

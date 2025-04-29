@@ -132,6 +132,16 @@ class HwInterface(metaclass=SingletonMeta):
                      * Unsure how it will interface w/ other methods. Will we need special RX/TX handler functions?
         """     
         with self._rw_lock:
+            msg+='\r\n'
             self.connection.write(msg.encode('UTF-8'))
+            # print(f"sending msg {msg}")
+            dataRead = str(self.connection.readline().decode("utf-8")).strip("\r\n")
+            # print(f"data_read {dataRead}")
+        return dataRead
+    
+    def rx_flush(self) -> str:
+        """Used to receive lines for case where more than 1 rx msg is sent"""
+        with self._rw_lock:
             dataRead = str(self.connection.readline().decode("utf-8")).strip("\r\n")
         return dataRead
+

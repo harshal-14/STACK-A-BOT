@@ -16,7 +16,7 @@ class HwEndEffector(EndEffector):
         self.hw_interface:HwInterface
 
     def bringup(self, **kwargs) -> int:
-        self.hw_interface = get_singleton(HwInterface)
+        self.hw_interface = HwInterface()
         if self.connect() == -1:
             return -1
         # set pump OFF and wait for "ok" response

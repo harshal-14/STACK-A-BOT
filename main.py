@@ -11,7 +11,7 @@ import numpy as np
 
 from .Components.SingletonRegistry import *
 from .Runtime_Handling import RoutineScheduler
-from .Runtime_Handling.Routines.Manipulation import ComponentBringup, ComponentShutdown
+from .Runtime_Handling.Routines.Manipulation import ComponentBringup, ComponentShutdown, GrabBoxRoutine, PlaceBoxRoutine
 from .Runtime_Handling.Routines.Manipulation.LinearInterpolationJS import LinearInterpolationJS
 from .Runtime_Handling.Routines.Perception import EnvironmentSetup
 from .World.Geometry import Pose
@@ -31,47 +31,51 @@ def main(args:dict):
     # ee_p2 = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [0.0,  0.3, 0.2]) 
     # ee_p3 = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [-0.3, 0.0, 0.2])
 
-    # movements Half way                                        30, 30
+    # move for photo                                             -30   80
     initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), 2.5))
     
     # scotts Algo goes here
     # initial_routines.append(...)
+    
+    # go home
+    initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), 5))
 
-    # goe almost all the way down                           40, 40 - slower speed 
+    # go down art 2 and rotate back art 3                        70, -60
+    initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), 5))
+    # Rotate art 3 to close                                           50/60   30              
     initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), 5))
     
-    # Chirags pick routine                                  40 50
-    # initial_routines.append(...)
+    # pickup routine                                  
+    initial_routines.append(GrabBoxRoutine.GrabBoxRoutine(pickup_pose=np.array([[0], [0], [0], [0], [0], [0]])))
 
     # go to home ish with rotated Art 4                     Zeros 
     initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), 5))
-    # Rotate with Art 4
+    # Rotate with Art 4                                                     -150/180    
     initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), 5))
 
-    # goe almost all the way down                           -30, 30
+    # move for photo                                             30   -80
     initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), 2.5))
 
-    # Chirags place routine 
+    # Harshal's Algo goes here
     # initial_routines.append(...)
-    
-    
 
-    initial_routines.append(LinearInterpolationJS(home_q, 2.5))
-    while(scheduler.has_routines()):
-        scheduler.run()
-        # add any other runtime logic that program needs. 
-        # These could be things like the safety daemon, watchdog?, telemetry capture?
-    while(1):
-        pass
-    """After we have finished all planned Routines, we should move to a safe position, and disconnect."""
-    #TODO, write routine to save any data to disk (images, telemetry, point clouds...) 
-    #TODO: write routine to move robot to safe positon for shutdown
-    home_robot2 = LinearInterpolationJS.LinearInterpolationJS(home_q, 3)
-    # gracefully disconnects from components.
-    shutdown = ComponentShutdown.ComponentShutdown()
+    # go home
+    initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), 5))
+
+    # go down art 2 and rotate back art 3                        -70, 85
+    initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), 5))
+    # Rotate art 3 to close                                           -50/60   -30              
+    initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), 5))
+
+    # Chirags place routine 
+    initial_routines.append(PlaceBoxRoutine.PlaceBoxRoutine(drop_pose=np.array([[0], [0], [0], [0], [0], [0]])))
+
+    # go to home ish with rotated Art 4                     Zeros 
+    initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), 5))    
     
-    scheduler.add_routine(home_robot2)
-    scheduler.add_routine(shutdown)
+    
+    scheduler = RoutineScheduler.RoutineScheduler(initial_routines)
+    # initial_routines.append(LinearInterpolationJS(home_q, 2.5))
     while(scheduler.has_routines()):
         scheduler.run()
     exit(0)

@@ -10,6 +10,17 @@
             "env": {
                 "PYTHONPATH": "${workspaceFolder}"
             }
+        },
+        {
+            "name": "Debug hw testing",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "stack_a_bot.Tests.test_hw_components",
+            "cwd": "${workspaceFolder}/..",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "args": "--test_num 0 --component manipulator"
         }
     ]
 }

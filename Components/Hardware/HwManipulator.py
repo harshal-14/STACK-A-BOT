@@ -37,8 +37,8 @@ class HwManipulator(Manipulator):
             self.hw_interface.tx_rx("!")
     
     def bringup(self, **kwargs) -> int:
-        self.hw_interface = get_singleton(HwInterface)
-        if not self.connect():
+        self.hw_interface = HwInterface()
+        if self.connect():
             return -1
         # wait until we get a successful readout of our current position
         position_iter_attempts = 0
@@ -54,7 +54,7 @@ class HwManipulator(Manipulator):
         return 0
     
     def connect(self, **kwargs) -> int:
-        if not self.hw_interface.connect_device():
+        if self.hw_interface.connect_device():
             return -1
         self.position_thread.start()
         return 0
@@ -95,12 +95,19 @@ class HwManipulator(Manipulator):
         while True:
             if not self.hw_interface.connected or self.stop_thread: break
             retstr = self.hw_interface.tx_rx("?")
-            print(retstr)
+            # TODO, sometimes it seems that we get 2 ok messages for the one command...
+            # The current way we are doing this could be prone to RACE CONDITIONS, so we need to be smarter recieving msgs.
+            # print(f'retstr {retstr}')
+            self.hw_interface.rx_flush()
+            self.hw_interface.rx_flush()
+            # print("Flush " + self.hw_interface.rx_flush())
+            # print("Flush " + self.hw_interface.rx_flush())
             if "error" in retstr or "ALARM" in retstr:
                 raise RuntimeError("HWManipulator.update_joint_values() returned something other than 'ok'.\n"
                                f"potential fault msg: {retstr}")
             else:
                 raw_data = retstr[1:][:-1].split(",")
+                # print(f'data as a list {raw_data}')
                 qs = np.array([[float(raw_data[1][5:])], [float(raw_data[2])], [float(raw_data[4])], 
                                [float(raw_data[5])], [float(raw_data[6])], [float(raw_data[7])]])
                 qs *= (np.pi/180.0)
