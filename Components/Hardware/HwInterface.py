@@ -91,8 +91,8 @@ class HwInterface(metaclass=SingletonMeta):
             self.connection.port = port[0]
             self.connection.open()
             # make two calls to read, one to get first empty msg, and the second to get the intro sequence
-            dataRead = str(self.connection.readline().decode("utf-8")).strip("\r\n")
-            dataRead = str(self.connection.readline().decode("utf-8")).strip("\r\n")
+            __ = str(self.connection.readline().decode("UTF-8")).strip("\r\n")
+            dataRead = str(self.connection.readline().decode("UTF-8")).strip("\r\n")
             print(dataRead)
             self.connected = True
             return 0
@@ -100,6 +100,8 @@ class HwInterface(metaclass=SingletonMeta):
             print(f"Exception Thrown: {e}")
             return -1
     
+    # TODO, add some timeout handling,
+
     def tx_rx(self, msg:str) -> str:
         """GRBL reccomends different strategies for sending GCode to the machine [seen here](https://github.com/grbl/grbl/wiki/Interfacing-with-Grbl).\n 
             First method - Simple Send-Response. 
@@ -132,16 +134,27 @@ class HwInterface(metaclass=SingletonMeta):
                      * Unsure how it will interface w/ other methods. Will we need special RX/TX handler functions?
         """     
         with self._rw_lock:
-            msg+='\r\n'
+            msg+='\n'
             self.connection.write(msg.encode('UTF-8'))
             # print(f"sending msg {msg}")
-            dataRead = str(self.connection.readline().decode("utf-8")).strip("\r\n")
-            # print(f"data_read {dataRead}")
+            dataRead = str(self.connection.readline().decode("UTF-8")).strip("\r\n")
+            # print(f"tx_rx data {dataRead}")
         return dataRead
     
-    def rx_flush(self) -> str:
+    def rx_position(self) -> str:
         """Used to receive lines for case where more than 1 rx msg is sent"""
         with self._rw_lock:
-            dataRead = str(self.connection.readline().decode("utf-8")).strip("\r\n")
+            self.connection.write("?\n".encode('UTF-8')) # perhaps we dont need a '\n' for state request query.
+            dataRead = str(self.connection.readline().decode("UTF-8")).strip("\r\n")
+            # The data has a tendency of getting out of sync, we should try reading util we get the actual position.
+            # TODO add some error handling...
+            while dataRead == "ok": # we keep retrying until we resync the data
+                dataRead = str(self.connection.readline().decode("UTF-8")).strip("\r\n")
+                if "error" in dataRead or "ALARM" in dataRead:
+                    raise RuntimeError("Error while trying to update current position'.\n"
+                                f"potential fault msg: {dataRead}")
+            # read last "ok" msg   
+            ack = str(self.connection.readline().decode("UTF-8")).strip("\r\n")
+            print(f"data_read {dataRead},\nack {ack}")
         return dataRead
 

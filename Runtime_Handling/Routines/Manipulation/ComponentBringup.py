@@ -30,7 +30,7 @@ class ComponentBringup(Routine):
         elif self.args.mode == 'HW':
             hw_interface = HwInterface.HwInterface()
             # SingletonRegistry.update_singleton_registry(HwInterface.HwInterface, hw_interface)
-            cam = HwCamera.HwCamera() 
+            # cam = HwCamera.HwCamera() 
             ee = HwEndEffector.HwEndEffector()
             manip = HwManipulator.HwManipulator()
         else:
@@ -38,14 +38,14 @@ class ComponentBringup(Routine):
                           err_msg=f"Wrong mode given, expected ['HW', 'SIM'], given {self.mode}", 
                           err_type=ValueError)
         
-        self.comp_list = [cam, ee, manip]
+        self.comp_list = [ee, manip]
         # Edit Registry to have superclass point to concrete impl obj
-        SingletonRegistry.update_singleton_registry(Camera.Camera, cam)
+        # SingletonRegistry.update_singleton_registry(Camera.Camera, cam)
         SingletonRegistry.update_singleton_registry(EndEffector.EndEffector, ee)
         SingletonRegistry.update_singleton_registry(Manipulator.Manipulator, manip)
 
         # prevent new instantiations from occuring past this point without EXPLICIT knowledge
-        Component.Component.lock()
+        # Component.Component.lock()
         return Status(Condition.Success)
 
     def loop(self) -> Status:

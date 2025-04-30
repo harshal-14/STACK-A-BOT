@@ -32,48 +32,53 @@ def main(args:dict):
     # ee_p3 = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [-0.3, 0.0, 0.2])
 
     # move for photo                                             -30   80
-    initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), 2.5))
+    # initial_routines.append(LinearInterpolationJS(np.array([[0], [np.deg2rad(-30)], [np.deg2rad(80)], [0], [0], [0]]), 2.5))
+    # initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), 2.5))
+    # initial_routines.append(LinearInterpolationJS(np.array([[0], [np.deg2rad(30)], [np.deg2rad(-85)], [0], [0], [0]]), 5))
+    # initial_routines.append(LinearInterpolationJS(np.array([[0], [np.deg2rad(60)], [np.deg2rad(55)], [0], [0], [0]]), 5))
+    # initial_routines.append(LinearInterpolationJS(np.array([[0], [np.deg2rad(60)], [np.deg2rad(20)], [0], [0], [0]]), 5))   
+    # initial_routines.append(LinearInterpolationJS(np.array([[0], [np.deg2rad(60)], [np.deg2rad(-80)], [0], [0], [0]]), 5))                       
+    # initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [np.deg2rad(-180)], [0], [0]]), 5))
+
+
     
     # scotts Algo goes here
-    # initial_routines.append(...)
-    
+    # initial_routines.append(...)m
     # go home
-    initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), 5))
-
-    # go down art 2 and rotate back art 3                        70, -60
-    initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), 5))
-    # Rotate art 3 to close                                           50/60   30              
-    initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), 5))
+    # go down art 2 and rotate back art 3                      
+    # Rotate art 3 to close                                          
     
-    # pickup routine                                  
-    initial_routines.append(GrabBoxRoutine.GrabBoxRoutine(pickup_pose=np.array([[0], [0], [0], [0], [0], [0]])))
+    # pickup routine            
+    # initial_routines.append(GrabBoxRoutine.GrabBoxRoutine(pickup_pose=np.array([[0], [0], [0], [0], [0], [0]])))
 
     # go to home ish with rotated Art 4                     Zeros 
-    initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), 5))
     # Rotate with Art 4                                                     -150/180    
-    initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), 5))
+    # initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), 5))
 
-    # move for photo                                             30   -80
-    initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), 2.5))
-
-    # Harshal's Algo goes here
-    # initial_routines.append(...)
-
-    # go home
-    initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), 5))
-
-    # go down art 2 and rotate back art 3                        -70, 85
-    initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), 5))
-    # Rotate art 3 to close                                           -50/60   -30              
-    initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), 5))
-
-    # Chirags place routine 
-    initial_routines.append(PlaceBoxRoutine.PlaceBoxRoutine(drop_pose=np.array([[0], [0], [0], [0], [0], [0]])))
-
-    # go to home ish with rotated Art 4                     Zeros 
+    # # move for photo                                             30   -80
+    initial_routines.append(LinearInterpolationJS(np.array([[0], [np.deg2rad(30)], [np.deg2rad(-80)], [np.deg2rad(-180)], [0], [0]]), 2.5))
+    initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [np.deg2rad(-180)], [0], [0]]), 5))
+    initial_routines.append(LinearInterpolationJS(np.array([[0], [np.deg2rad(-20)], [np.deg2rad(85)], [np.deg2rad(-180)], [0], [0]]), 5))
+    initial_routines.append(LinearInterpolationJS(np.array([[0], [np.deg2rad(-60)], [np.deg2rad(85)], [np.deg2rad(-180)], [0], [0]]), 5))
+    initial_routines.append(LinearInterpolationJS(np.array([[0], [np.deg2rad(-60)], [np.deg2rad(-60)], [np.deg2rad(-180)], [0], [0]]), 5))
+    initial_routines.append(LinearInterpolationJS(np.array([[0], [np.deg2rad(-60)], [np.deg2rad(80)], [np.deg2rad(-90)], [0], [0]]), 5))  
     initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), 5))    
+
+    # # Harshal's Algo goes here
+    # # initial_routines.append(...)
+
+    # # go home
+
+    # # go down art 2 and rotate back art 3  
+    # # Rotate art 3 to close                 
+
+    # # Chirags place routine 
+    # # initial_routines.append(PlaceBoxRoutine.PlaceBoxRoutine(drop_pose=np.array([[0], [0], [0], [0], [0], [0]])))
+
+    # # go to home ish with rotated Art 4                     Zeros 
     
-    
+    # print(initial_routines)
+    # exit(1)
     scheduler = RoutineScheduler.RoutineScheduler(initial_routines)
     # initial_routines.append(LinearInterpolationJS(home_q, 2.5))
     while(scheduler.has_routines()):

@@ -33,8 +33,9 @@ class HwManipulator(Manipulator):
         self.stop()
 
     def stop(self):
-        if self.hw_interface.connected:
-            self.hw_interface.tx_rx("!")
+        pass
+        # if self.hw_interface.connected:
+        #     self.hw_interface.tx_rx("!")
     
     def bringup(self, **kwargs) -> int:
         self.hw_interface = HwInterface()
@@ -74,9 +75,10 @@ class HwManipulator(Manipulator):
         """Sends a uninterpolated move cmd to the hw_interface for movement of all 6 joints"""
 
         qs = joint_array_sanitizer(q_array)
+        qs *= (180 / np.pi)
         # Rapid uninterpolated movement        B and C must be equivalent...
-        message = ( f"G0 A{qs[0]:.3f} B{qs[1]:.3f} C{qs[1]:.3f} D{qs[2]:.3f}"
-                      f" X{qs[3]:.3f} Y{qs[4]:.3f} Z{qs[5]:.3f}\n")
+        message = ( f"G0 A{qs[0]:.1f} B{qs[1]:.1f} C{qs[1]:.1f} D{qs[2]:.1f}"
+                      f" X{qs[3]:.1f} Y{qs[4]:.1f} Z{qs[5]:.1f}\n")
         
         retstr = self.hw_interface.tx_rx(message)
         if "error" in retstr or "ALARM" in retstr:
@@ -91,15 +93,16 @@ class HwManipulator(Manipulator):
         """ Function to query grbl for current position, 
             \nAs reccomended by GRBL documentation, this runs at 10Hz max, any faster yields diminshing returns.
         """
-        print("Starting position thread")
+        print(f"Starting position thread with mutex {id(self.hw_interface._rw_lock)}")
         while True:
             if not self.hw_interface.connected or self.stop_thread: break
-            retstr = self.hw_interface.tx_rx("?")
+            # retstr = self.hw_interface.tx_rx("?")
+            retstr = self.hw_interface.rx_position()
             # TODO, sometimes it seems that we get 2 ok messages for the one command...
             # The current way we are doing this could be prone to RACE CONDITIONS, so we need to be smarter recieving msgs.
             # print(f'retstr {retstr}')
-            self.hw_interface.rx_flush()
-            self.hw_interface.rx_flush()
+            # self.hw_interface.rx_flush()
+            # self.hw_interface.rx_flush()
             # print("Flush " + self.hw_interface.rx_flush())
             # print("Flush " + self.hw_interface.rx_flush())
             if "error" in retstr or "ALARM" in retstr:
@@ -113,7 +116,7 @@ class HwManipulator(Manipulator):
                 qs *= (np.pi/180.0)
                 with self._pos_lock:
                     self.current_position = qs
-            time.sleep(0.1) # sleep for 100ms 
+            time.sleep(0.2) # sleep for 100ms 
     
     def get_joint_values(self) -> np.ndarray:
         """ Function returns the current position of the end_effector as updated by the position thread """

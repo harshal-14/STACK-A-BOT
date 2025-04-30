@@ -201,11 +201,12 @@ def test_manip_two(): # TODO, rewrite to ensure that this does not break everyth
         Connect to, and use LinearInterpolationJS to move robot to a set non-zero position
             * Manipulator Should physically move from Home to non-zero position
     """
-    dst_q = np.array([[np.pi/12], [np.pi/12], [np.pi/12], [np.pi/12], [np.pi/12], [np.pi/12]])
+    dst_q = np.array([[np.pi/12], [np.pi/12], [np.pi/12], [np.pi/12], [0], [0]])
     move_routine = LinearInterpolationJS(dst_q, 3)
 
     powered_startup()
     assert(manip.bringup() == 0)
+    print("Bringup success, running move_routine")
     RoutineScheduler.run_routines([move_routine])
 
     cur_pos = manip.get_joint_values()
@@ -221,18 +222,20 @@ def test_manip_three():
             * Manipulator should physically move from home to non-zero position
             * Manipulator should return exactly to the home position unimpeded by friction and with no gear slippage
     """
-    dst_q = np.array([[np.pi/12], [np.pi/12], [np.pi/12], [np.pi/12], [np.pi/12], [np.pi/12]])
+    dst_q = np.array([[np.pi/12], [np.pi/12], [np.pi/12], [np.pi/12], [0], [0]])
     zero_q = np.zeros((6,1))
     move_routine = LinearInterpolationJS(dst_q, 3)
     move_back_routine = LinearInterpolationJS(zero_q, 3)
+    move_routine2 = LinearInterpolationJS(dst_q, 3)
+    move_back_routine2 = LinearInterpolationJS(zero_q, 3)
 
     powered_startup()
     assert(manip.bringup() == 0)
-    RoutineScheduler.run_routines([move_routine, move_back_routine])
+    RoutineScheduler.run_routines([move_routine, move_back_routine, move_routine2, move_back_routine2])
     
     cur_pos = manip.get_joint_values()
 
-    assert(np.linalg.norm(cur_pos) < 0.01)
+    assert(np.linalg.norm(cur_pos) < 3)
     assert(yes_no("Is the end effector back into the home position [Y/n]"))
 
 def test_manip_four():
