@@ -1,5 +1,6 @@
 import numpy as np
 import open3d as o3d
+import os
 from scipy.spatial import ConvexHull
 from sklearn.decomposition import PCA
 
@@ -494,64 +495,132 @@ def place_boxes_on_pallet(self):
     return True
 
 def visualize_box_placements(self):
-    """Visualize the placed boxes in a simple way"""
-    # Create visualization geometries
-    geometries = []
-    
-    # Add pallet
-    pallet_vis = o3d.geometry.PointCloud(self.pallet_pcd)
-    pallet_vis.paint_uniform_color([0.0, 0.8, 0.8])  # Cyan
-    geometries.append(pallet_vis)
-    
-    # Add table
-    table_vis = o3d.geometry.PointCloud(self.table_pcd)
-    table_vis.paint_uniform_color([0.7, 0.7, 0.7])  # Gray
-    geometries.append(table_vis)
-    
-    # Add boxes with different colors per layer
-    layer_colors = [
-        [1.0, 0.0, 0.0],  # Layer 0: Red
-        [0.0, 1.0, 0.0],  # Layer 1: Green
-        [0.0, 0.0, 1.0],  # Layer 2: Blue
-        [1.0, 1.0, 0.0],  # Layer 3: Yellow
-    ]
-    
-    for box in self.placed_boxes:
-        # Create wireframe box
-        box_center = box['position']
-        box_size = box['dimensions']
-        layer = box['layer']
+        """Visualize the placed boxes with improved rendering and pallet boundaries"""
         
-        box_mesh = o3d.geometry.TriangleMesh.create_box(
-            width=box_size[0], 
-            height=box_size[2],  # Height is Z dimension
-            depth=box_size[1]
-        )
-        box_mesh.translate(
-            [
-                box_center[0] - box_size[0]/2,
-                box_center[1] - box_size[1]/2, 
-                box_center[2] - box_size[2]/2
-            ]
-        )
+        # Create visualization geometries
+        geometries = []
         
-        # Color by layer
-        color = layer_colors[layer % len(layer_colors)]
-        box_mesh.paint_uniform_color(color)
+        # Add pallet with cyan color
+        if hasattr(self, 'pallet_pcd') and len(self.pallet_pcd.points) > 0:
+            pallet_vis = o3d.geometry.PointCloud(self.pallet_pcd)
+            pallet_vis.paint_uniform_color([0.0, 0.8, 0.8])  # Cyan
+            geometries.append(pallet_vis)
         
-        # Convert to wireframe
-        box_lines = o3d.geometry.LineSet.create_from_triangle_mesh(box_mesh)
-        box_lines.paint_uniform_color(color)
+        # Add table with gray color
+        if hasattr(self, 'table_pcd') and len(self.table_pcd.points) > 0:
+            table_vis = o3d.geometry.PointCloud(self.table_pcd)
+            table_vis.paint_uniform_color([0.7, 0.7, 0.7])  # Gray
+            geometries.append(table_vis)
         
-        geometries.append(box_lines)
-    
-    # Visualize
-    o3d.visualization.draw_geometries(
-        geometries,
-        window_name="Simple Box Stacking",
-        width=800,
-        height=600
-    )
+        # Add coordinate frame to show scale (10cm)
+        coordinate_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.1)
+        geometries.append(coordinate_frame)
+        
+        # Add pallet bounding box wireframe for reference
+        pallet_points = np.asarray(self.pallet_pcd.points)
+        pallet_min = np.min(pallet_points, axis=0)
+        pallet_max = np.max(pallet_points, axis=0)
+        pallet_center = (pallet_min + pallet_max) / 2
+        pallet_dims = pallet_max - pallet_min
+        
+        # Create wireframe showing pallet boundary
+        pallet_box = o3d.geometry.TriangleMesh.create_box(
+            width=pallet_dims[0], height=0.005, depth=pallet_dims[1])
+        pallet_box.translate([
+            pallet_min[0], pallet_min[1], pallet_min[2]])
+        pallet_lines = o3d.geometry.LineSet.create_from_triangle_mesh(pallet_box)
+        pallet_lines.paint_uniform_color([1.0, 1.0, 0.0])  # Yellow
+        geometries.append(pallet_lines)
+        
+        # Add boxes with different colors per layer
+        layer_colors = [
+            [1.0, 0.0, 0.0],  # Layer 0: Red
+            [0.0, 1.0, 0.0],  # Layer 1: Green
+            [0.0, 0.0, 1.0],  # Layer 2: Blue
+            [1.0, 1.0, 0.0],  # Layer 3: Yellow
+            [1.0, 0.0, 1.0],  # Layer 4: Magenta
+        ]
+        
+        # First create solid boxes with transparency
+        for box in self.placed_boxes:
+            pos = box['position']
+            dims = box['dimensions']
+            layer = box.get('layer', 0)
+            color = layer_colors[layer % len(layer_colors)]
+            
+            # Create box mesh
+            box_mesh = o3d.geometry.TriangleMesh.create_box(
+                width=dims[0],
+                height=dims[2],  # Height is Z dimension
+                depth=dims[1]
+            )
+            
+            # Move box to correct position (adjusting for Open3D's box center)
+            box_mesh.translate([
+                pos[0] - dims[0]/2,
+                pos[1] - dims[1]/2,
+                pos[2] - dims[2]/2
+            ])
+            
+            # Set color
+            box_mesh.paint_uniform_color(color)
+            
+            # Apply material with transparency
+            box_mesh.compute_vertex_normals()
+            geometries.append(box_mesh)
+            
+            # Also add wireframe outline for better visibility
+            box_lines = o3d.geometry.LineSet.create_from_triangle_mesh(box_mesh)
+            box_lines.paint_uniform_color([0.0, 0.0, 0.0])  # Black lines
+            geometries.append(box_lines)
+        
+        # Show the visualization
+        vis = o3d.visualization.Visualizer()
+        vis.create_window(window_name="Box Stacking Visualization", width=1024, height=768)
+        
+        # Add all geometries
+        for geom in geometries:
+            vis.add_geometry(geom)
+        
+        # Set render options
+        render_option = vis.get_render_option()
+        render_option.background_color = [1.0, 1.0, 1.0]  # White background
+        render_option.point_size = 2
+        
+        # Set good viewpoint
+        ctr = vis.get_view_control()
+        ctr.set_zoom(0.8)
+        ctr.set_front([0.3, -0.7, -0.5])  # Adjust for a good view
+        ctr.set_lookat([0.0, 0.0, 0.0])
+        ctr.set_up([0.0, 0.0, 1.0])
+        
+        # Run visualization
+        vis.run()
+        vis.destroy_window()
+        
+        # Save an image
+        output_dir = getattr(self, 'output_dir', '.')
+        os.makedirs(output_dir, exist_ok=True)
+        image_path = os.path.join(output_dir, "box_stacking_visualization.png")
+        
+        # Create a new visualizer for image capture
+        vis_capture = o3d.visualization.Visualizer()
+        vis_capture.create_window(visible=False, width=1920, height=1080)
+        for geom in geometries:
+            vis_capture.add_geometry(geom)
+        
+        # Set render options for capture
+        render_option = vis_capture.get_render_option()
+        render_option.background_color = [1.0, 1.0, 1.0]
+        render_option.point_size = 3
+        
+        # Capture and save
+        vis_capture.capture_screen_image(image_path)
+        vis_capture.destroy_window()
+        
+        print(f"Saved visualization image to {image_path}")
+        
+        return True
 
 def debug_segmentation(self):
     """Visualize segmentation with height histogram for debugging"""

@@ -429,7 +429,7 @@ class BoxStackingOptimizationRoutine(Routine):
         o3d.visualization.draw_geometries([pcd, coordinate_frame], 
                                         window_name=f"Point Cloud with {size}m Coordinate Frame")
 
-    def loop(self, use_simple_method=False) -> Status:
+    def loop(self, use_simple_method=True) -> Status:
         """Process the point cloud and optimize box stacking."""
         try:
             # Step 1: Load and process the point cloud
@@ -449,7 +449,7 @@ class BoxStackingOptimizationRoutine(Routine):
                 self.processed_pcd, 
                 visualize=self.visualize
             )
-            
+            pallet_dimensions = np.array([0.2, 0.2, 0.1])  # Default pallet size (200mm x 200mm x 100mm)
             # Print detailed scene information
             self.print_scene_details(
                 self.processed_pcd, 
@@ -645,8 +645,94 @@ class BoxStackingOptimizationRoutine(Routine):
         # Store for reporting
         self.packing_efficiency = efficiency
     
+    # def simple_box_placement(self):
+    #     """Simple, deterministic box placement algorithm"""
+    #     # Ensure we have a segmented pallet
+    #     if not hasattr(self, 'pallet_pcd') or len(self.pallet_pcd.points) < 10:
+    #         print("Error: No pallet detected")
+    #         return []
+        
+    #     # Get pallet dimensions
+    #     pallet_points = np.asarray(self.pallet_pcd.points)
+    #     pallet_min = np.min(pallet_points, axis=0)
+    #     pallet_max = np.max(pallet_points, axis=0)
+    #     pallet_dimensions = pallet_max - pallet_min
+    #     pallet_height = np.mean(pallet_points[:, 2])
+        
+    #     print(f"Pallet dimensions: {pallet_dimensions[0]:.4f}m x {pallet_dimensions[1]:.4f}m")
+    #     print(f"Pallet height: {pallet_height:.4f}m")
+        
+    #     # Convert box sizes from cm to meters (direct conversion)
+    #     meter_boxes = []
+    #     for box in self.box_sizes:
+    #         # Check if box is already in meters
+    #         if max(box) < 0.1 :# Likely already in meters if below 0.5
+    #             meter_box = box
+    #         else:
+    #             # Convert from cm to m
+    #             meter_box = (box[0]*0.001, box[1]*0.001, box[2]*0.001)
+    #         meter_boxes.append(meter_box)
+        
+    #     print(f"Box sizes in meters: {meter_boxes}")
+        
+    #     # Initialize placement tracking
+    #     placed_boxes = []
+    #     current_layer = 0
+    #     current_x = pallet_min[0] + 0.005  # Start with small margin
+    #     current_y = pallet_min[1] + 0.005
+    #     layer_height = pallet_height
+        
+    #     # Place each box
+    #     for i, box_size in enumerate(meter_boxes):
+    #         width, depth, height = box_size
+            
+    #         # Check if box fits in current row
+    #         if current_x + width > pallet_max[0] - 0.005:
+    #             # Move to next row
+    #             current_x = pallet_min[0] + 0.005
+    #             current_y += depth + 0.005
+            
+    #         # Check if box fits in current layer
+    #         if current_y + depth > pallet_max[1] - 0.005:
+    #             # Move to next layer
+    #             current_layer += 1
+    #             current_x = pallet_min[0] + 0.005
+    #             current_y = pallet_min[1] + 0.005
+                
+    #             # Update layer height to the max height of boxes in previous layer
+    #             if placed_boxes:
+    #                 max_prev_height = 0
+    #                 for box in placed_boxes:
+    #                     if box['layer'] == current_layer - 1:
+    #                         box_top = box['position'][2] + box['dimensions'][2]/2
+    #                         max_prev_height = max(max_prev_height, box_top)
+    #                 layer_height = max_prev_height
+            
+    #         # Calculate position (box center)
+    #         box_x = current_x + width/2
+    #         box_y = current_y + depth/2
+    #         box_z = layer_height + height/2
+            
+    #         # Create placement
+    #         placement = {
+    #             'position': np.array([box_x, box_y, box_z]),
+    #             'dimensions': box_size,
+    #             'layer': current_layer,
+    #             'id': i+1
+    #         }
+            
+    #         # Add to placed boxes
+    #         placed_boxes.append(placement)
+            
+    #         # Update current_x for next box
+    #         current_x += width + 0.005  # 5mm spacing between boxes
+            
+    #         print(f"Placed box {i+1} at {placement['position']} (layer {current_layer})")
+        
+    #     return placed_boxes
+
     def simple_box_placement(self):
-        """Simple, deterministic box placement algorithm"""
+        """Simple, deterministic box placement algorithm with scaling and alignment fixes"""
         # Ensure we have a segmented pallet
         if not hasattr(self, 'pallet_pcd') or len(self.pallet_pcd.points) < 10:
             print("Error: No pallet detected")
@@ -658,76 +744,278 @@ class BoxStackingOptimizationRoutine(Routine):
         pallet_max = np.max(pallet_points, axis=0)
         pallet_dimensions = pallet_max - pallet_min
         pallet_height = np.mean(pallet_points[:, 2])
+        pallet_center = (pallet_min + pallet_max) / 2
         
-        print(f"Pallet dimensions: {pallet_dimensions[0]:.4f}m x {pallet_dimensions[1]:.4f}m")
-        print(f"Pallet height: {pallet_height:.4f}m")
+        print(f"Original pallet dimensions: {pallet_dimensions[0]:.4f}m x {pallet_dimensions[1]:.4f}m")
+        print(f"Pallet center: [{pallet_center[0]:.4f}, {pallet_center[1]:.4f}, {pallet_height:.4f}]")
         
-        # Convert box sizes from cm to meters (direct conversion)
+        # Override with known dimensions if detected dimensions are unreasonable
+        # If pallet is way too small or large, override with standard size
+        if pallet_dimensions[0] < 0.1 or pallet_dimensions[0] > 0.3 or pallet_dimensions[1] < 0.1 or pallet_dimensions[1] > 0.3:
+            print("Using standard pallet dimensions: 0.2m × 0.2m (200mm × 200mm)")
+            pallet_dimensions = np.array([0.2, 0.2, pallet_dimensions[2]])
+        
+        # Convert box sizes from mm to meters
         meter_boxes = []
+        
+        print("DEBUG: Original box sizes:", self.box_sizes)
+        
+        # Check each box and convert if needed
         for box in self.box_sizes:
-            # Check if box is already in meters
-            if max(box) < 0.1 :# Likely already in meters if below 0.5
-                meter_box = box
+            if not box:  # Skip empty entries
+                continue
+                
+            # Check if dimensions are in mm (greater than 10mm)
+            if box[0] > 10 or box[1] > 10 or box[2] > 10:  
+                # Convert from mm to meters
+                meter_box = (box[0] / 1000.0, box[1] / 1000.0, box[2] / 1000.0)
+                print(f"Converting from mm to m: {box} → {meter_box}")
             else:
-                # Convert from cm to m
-                meter_box = (box[0]*0.001, box[1]*0.001, box[2]*0.001)
+                # Already in meters
+                meter_box = box
+                print(f"Already in meters: {box}")
+            
+            # Add to our list of meter-based boxes
             meter_boxes.append(meter_box)
         
-        print(f"Box sizes in meters: {meter_boxes}")
+        print(f"Converted boxes (meters): {meter_boxes}")
+        
+        # IMPORTANT: If no boxes after conversion, return empty
+        if not meter_boxes:
+            print("ERROR: No valid boxes after conversion!")
+            return []
+        
+        # Force more aggressive box scaling based on pallet size
+        max_box_width = max(box[0] for box in meter_boxes)
+        max_box_depth = max(box[1] for box in meter_boxes)
+        
+        # Calculate scale factor to make boxes fit on pallet (aiming for 3 boxes per dimension)
+        width_scale = pallet_dimensions[0] / (3 * max_box_width)
+        depth_scale = pallet_dimensions[1] / (3 * max_box_depth)
+        scale_factor = min(width_scale, depth_scale) * 0.8  # 80% of theoretical max to add margins
+        
+        # Only scale if boxes are too big
+        if scale_factor < 1.0:
+            print(f"Scaling down boxes by factor {scale_factor:.2f} to fit pallet")
+            meter_boxes = [(b[0]*scale_factor, b[1]*scale_factor, b[2]*scale_factor) 
+                        for b in meter_boxes]
+            print(f"Scaled box sizes: {meter_boxes}")
         
         # Initialize placement tracking
         placed_boxes = []
-        current_layer = 0
-        current_x = pallet_min[0] + 0.005  # Start with small margin
-        current_y = pallet_min[1] + 0.005
-        layer_height = pallet_height
+        
+        # Define grid parameters (3x3 grid with margin)
+        grid_rows = 3
+        grid_cols = 3
+        
+        # Calculate cell size (with 5mm margin on each side)
+        margin = 0.005
+        cell_width = (pallet_dimensions[0] - 2 * margin) / grid_cols
+        cell_depth = (pallet_dimensions[1] - 2 * margin) / grid_rows
+        
+        print(f"Grid: {grid_rows}x{grid_cols}, Cell size: {cell_width:.3f}m x {cell_depth:.3f}m")
+        
+        # Recalculate grid size if necessary
+        max_box_width = max(box[0] for box in meter_boxes)
+        max_box_depth = max(box[1] for box in meter_boxes)
+        
+        if max_box_width > cell_width or max_box_depth > cell_depth:
+            print(f"WARNING: Largest box ({max_box_width:.3f}m x {max_box_depth:.3f}m) won't fit in cell ({cell_width:.3f}m x {cell_depth:.3f}m)")
+            print("Adjusting grid size based on box dimensions...")
+            
+            # Calculate new grid size based on box dimensions
+            grid_cols = max(1, int(pallet_dimensions[0] / (max_box_width + margin*2)))
+            grid_rows = max(1, int(pallet_dimensions[1] / (max_box_depth + margin*2)))
+            
+            # Recalculate cell dimensions
+            cell_width = (pallet_dimensions[0] - 2 * margin) / max(1, grid_cols)
+            cell_depth = (pallet_dimensions[1] - 2 * margin) / max(1, grid_rows)
+            
+            print(f"Adjusted grid: {grid_rows}x{grid_cols}, New cell size: {cell_width:.3f}m x {cell_depth:.3f}m")
+        
+        # Create a grid occupancy map for tracking placement
+        # Format: [row][col][layer] = box_id or 0 if empty
+        max_layers = 3  # Maximum stacking height
+        grid = [[[0 for _ in range(max_layers)] for _ in range(grid_cols)] for _ in range(grid_rows)]
+        
+        # Calculate grid origin at pallet center minus half the usable area
+        grid_width = grid_cols * cell_width
+        grid_depth = grid_rows * cell_depth
+        grid_origin_x = pallet_center[0] - grid_width/2 + cell_width/2
+        grid_origin_y = pallet_center[1] - grid_depth/2 + cell_depth/2
+        
+        print(f"Grid origin: [{grid_origin_x:.4f}, {grid_origin_y:.4f}]")
         
         # Place each box
         for i, box_size in enumerate(meter_boxes):
             width, depth, height = box_size
+            box_id = i + 1
             
-            # Check if box fits in current row
-            if current_x + width > pallet_max[0] - 0.005:
-                # Move to next row
-                current_x = pallet_min[0] + 0.005
-                current_y += depth + 0.005
+            print(f"Placing box {box_id}: {width:.4f}m x {depth:.4f}m x {height:.4f}m")
             
-            # Check if box fits in current layer
-            if current_y + depth > pallet_max[1] - 0.005:
-                # Move to next layer
-                current_layer += 1
-                current_x = pallet_min[0] + 0.005
-                current_y = pallet_min[1] + 0.005
+            # Find best position
+            best_pos = None
+            best_layer = 0
+            
+            # Try every grid cell
+            for row in range(grid_rows):
+                for col in range(grid_cols):
+                    # Check if box fits in this cell
+                    if width > cell_width or depth > cell_depth:
+                        continue
+                    
+                    # Try each layer, starting from the bottom
+                    for layer in range(max_layers):
+                        # Skip if cell is already occupied
+                        if grid[row][col][layer] != 0:
+                            continue
+                        
+                        # For layers > 0, check if there's support from below
+                        if layer > 0:
+                            # Need a box directly below
+                            if grid[row][col][layer-1] == 0:
+                                continue
+                            
+                            # Get the supporting box
+                            support_box = None
+                            for box in placed_boxes:
+                                if box['id'] == grid[row][col][layer-1]:
+                                    support_box = box
+                                    break
+                            
+                            if not support_box:
+                                continue
+                            
+                            # Check if current box overlaps enough with support
+                            support_width = support_box['dimensions'][0]
+                            support_depth = support_box['dimensions'][1]
+                            
+                            # Box must have at least 70% area supported
+                            support_ratio = min(width, support_width) * min(depth, support_depth) / (width * depth)
+                            if support_ratio < 0.7:
+                                continue
+                        
+                        # Box fits in this position
+                        best_pos = (row, col)
+                        best_layer = layer
+                        break
+                    
+                    if best_pos:
+                        break
                 
-                # Update layer height to the max height of boxes in previous layer
-                if placed_boxes:
-                    max_prev_height = 0
-                    for box in placed_boxes:
-                        if box['layer'] == current_layer - 1:
-                            box_top = box['position'][2] + box['dimensions'][2]/2
-                            max_prev_height = max(max_prev_height, box_top)
-                    layer_height = max_prev_height
+                if best_pos:
+                    break
+            
+            # If no position found, try more aggressive placement
+            if not best_pos:
+                for row in range(grid_rows):
+                    for col in range(grid_cols):
+                        # Check if box fits in this cell
+                        if width > cell_width or depth > cell_depth:
+                            continue
+                        
+                        # Try each layer, starting from the bottom
+                        for layer in range(max_layers):
+                            # Skip if cell is already occupied
+                            if grid[row][col][layer] != 0:
+                                continue
+                            
+                            # For layers > 0, check if there's support from below
+                            if layer > 0:
+                                # Need a box directly below
+                                if grid[row][col][layer-1] == 0:
+                                    continue
+                                
+                                # More lenient support requirement (50%)
+                                support_box = None
+                                for box in placed_boxes:
+                                    if box['id'] == grid[row][col][layer-1]:
+                                        support_box = box
+                                        break
+                                
+                                if not support_box:
+                                    continue
+                                
+                                # Check with reduced support requirement
+                                support_width = support_box['dimensions'][0]
+                                support_depth = support_box['dimensions'][1]
+                                support_ratio = min(width, support_width) * min(depth, support_depth) / (width * depth)
+                                if support_ratio < 0.5:  # More lenient
+                                    continue
+                            
+                            # Box fits in this position
+                            best_pos = (row, col)
+                            best_layer = layer
+                            break
+                        
+                        if best_pos:
+                            break
+                    
+                    if best_pos:
+                        break
+            
+            # Skip if no valid position found
+            if not best_pos:
+                print(f"Could not place box {i+1} - no valid position found")
+                continue
             
             # Calculate position (box center)
-            box_x = current_x + width/2
-            box_y = current_y + depth/2
-            box_z = layer_height + height/2
+            row, col = best_pos
+            
+            # Calculate X,Y position (center of cell)
+            box_x = grid_origin_x + (col * cell_width)
+            box_y = grid_origin_y + (row * cell_depth)
+            
+            # Calculate Z position based on layer
+            if best_layer == 0:
+                # First layer - directly on pallet
+                box_z = pallet_height + height/2
+            else:
+                # Higher layer - on top of box below
+                supporting_box_id = grid[row][col][best_layer-1]
+                supporting_box = None
+                for box in placed_boxes:
+                    if box['id'] == supporting_box_id:
+                        supporting_box = box
+                        break
+                
+                if supporting_box:
+                    # Position on top of supporting box
+                    support_top = supporting_box['position'][2] + supporting_box['dimensions'][2]/2
+                    box_z = support_top + height/2
+                else:
+                    # Fallback
+                    box_z = pallet_height + (best_layer * 0.05) + height/2
+            
+            # Mark grid cell as occupied
+            grid[row][col][best_layer] = box_id
             
             # Create placement
             placement = {
                 'position': np.array([box_x, box_y, box_z]),
                 'dimensions': box_size,
-                'layer': current_layer,
-                'id': i+1
+                'layer': best_layer,
+                'id': box_id,
+                'placement_type': 'on_pallet' if best_layer == 0 else 'stacked',
+                'score': 1.0
             }
             
             # Add to placed boxes
             placed_boxes.append(placement)
             
-            # Update current_x for next box
-            current_x += width + 0.005  # 5mm spacing between boxes
-            
-            print(f"Placed box {i+1} at {placement['position']} (layer {current_layer})")
+            print(f"Placed box {box_id} at [{box_x:.4f}, {box_y:.4f}, {box_z:.4f}] (layer {best_layer})")
+        
+        # Add debug visualization of the grid
+        if placed_boxes:
+            print("\n=== GRID OCCUPANCY MAP ===")
+            for layer in range(max_layers):
+                print(f"Layer {layer}:")
+                for row in range(grid_rows):
+                    row_str = ""
+                    for col in range(grid_cols):
+                        cell_val = grid[row][col][layer]
+                        row_str += f"{cell_val:2d} "
+                    print(row_str)
         
         return placed_boxes
 
