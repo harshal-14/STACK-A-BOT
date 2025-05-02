@@ -27,7 +27,7 @@ import numpy as np
 # Globals used for each test
 hw_interface = HwInterface() 
 end_effector = HwEndEffector()
-manip = HwManipulator()
+manip = HwManipulator("stack_a_bot/World/models/thor_robot.urdf")
 
 # manip = SimManipulator(urdf_file="stack_a_bot/World/models/thor_robot.urdf", meshes_dir="stack_a_bot/World/models/thor_meshes/")
 update_singleton_registry(Manipulator, manip)

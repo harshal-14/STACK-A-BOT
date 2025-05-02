@@ -15,7 +15,6 @@ class PlaceBoxRoutine(Routine):
 
         self.step = 1
         self.wait_start_time = None
-        self.timeout = 5.0  # seconds timeout for movement
         self.step_start_time = None
 
     def init(self, prev_outputs: dict, parameters: dict = None) -> Status:
@@ -33,45 +32,31 @@ class PlaceBoxRoutine(Routine):
             self.manipulator.move_js(self.drop_pose)
             self.step = 2
             self.step_start_time = current_time
-            return Status(Condition.In_Progress)
 
         # Step 2: Wait to reach drop_pose or timeout
         elif self.step == 2:
-            if current_time - self.step_start_time > self.timeout:
-                print("[PlaceBoxRoutine] Timeout reaching drop_pose")
-                self.status = Status(Condition.Fault)
-                return self.status
-
-            joint_vals = self.manipulator.get_joint_values()
-            current_pose = self.manipulator.FK_Solver(joint_vals)
-            if current_pose.dist(self.drop_pose) < 3:
+            if current_time - self.step_start_time > 7:
                 self.step = 3
                 self.wait_start_time = current_time
-            return Status(Condition.In_Progress)
 
-        # Step 3: Release box and wait 2 seconds
+        # Step 3: Release box and wait 3 seconds
         elif self.step == 3:
-            self.end_effector.set_mode(0)
-            if current_time - self.wait_start_time >= 2.0:
+            if self.end_effector.get_status():
+                self.end_effector.set_mode(False)
+            if current_time - self.wait_start_time >= 3.0:
                 self.manipulator.move_js(self.predrop_pose)
                 self.step = 4
                 self.step_start_time = current_time
-            return Status(Condition.In_Progress)
 
         # Step 4: Wait to reach predrop_pose or timeout
         elif self.step == 4:
-            if current_time - self.step_start_time > self.timeout:
-                print("[PlaceBoxRoutine] Timeout reaching predrop_pose")
-                self.status = Status(Condition.Fault)
-                return self.status
-
-            joint_vals = self.manipulator.get_joint_values()
-            current_pose = self.manipulator.FK_Solver(joint_vals)
-            if current_pose.dist(self.predrop_pose) < 3:
+            if current_time - self.step_start_time > 7:
                 return Status(Condition.Success)
-            return Status(Condition.In_Progress)
+        
+        return Status(Condition.In_Progress)
 
     def end(self) -> tuple[Status, dict]:
+        time.sleep(5)
         return Status(Condition.Success), {"final_pose": self.manipulator.get_joint_values()}
 
     def handle_fault(self, prev_status: Status) -> tuple[Status, dict]:

@@ -2,14 +2,15 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug with debugpy",
+            "name": "Debug main with debugpy",
             "type": "debugpy",
             "request": "launch",
             "module": "stack_a_bot.main",
             "cwd": "${workspaceFolder}/..",
             "env": {
                 "PYTHONPATH": "${workspaceFolder}"
-            }
+            },
+            "args": "--mode HW"
         },
         {
             "name": "Debug hw testing",

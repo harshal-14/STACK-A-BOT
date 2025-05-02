@@ -45,17 +45,16 @@ class LinearInterpolationJS(Routine):
         if time_delta > 1.0:
             return Status(Condition.Success)
 
-        print(f"Time Delta {time_delta}")
+        # print(f"Time Delta {time_delta}")
         q_diff = self.dst_q - self.init_q
         target_q = q_diff * time_delta + self.init_q
         self.manip_ref.move_js(target_q)
-        time.sleep(0.1)
+        time.sleep(0.2)
 
         return Status(Condition.In_Progress)
     
     def end(self) -> tuple[Status, dict]:
         """Stops moving manipulator to end motion."""
-        # self.manip_ref.stop()
         time.sleep(5)
         return Status(Condition.Success), None
     

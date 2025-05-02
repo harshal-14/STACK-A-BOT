@@ -32,7 +32,7 @@ class ComponentBringup(Routine):
             # SingletonRegistry.update_singleton_registry(HwInterface.HwInterface, hw_interface)
             # cam = HwCamera.HwCamera() 
             ee = HwEndEffector.HwEndEffector()
-            manip = HwManipulator.HwManipulator()
+            manip = HwManipulator.HwManipulator(self.args.URDF_path+"thor_robot.urdf")
         else:
             return Status(Condition.Fault, 
                           err_msg=f"Wrong mode given, expected ['HW', 'SIM'], given {self.mode}", 

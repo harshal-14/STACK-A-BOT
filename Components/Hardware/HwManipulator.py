@@ -21,21 +21,18 @@ class HwManipulator(Manipulator):
         hw_interface(HWInterface): The serial connection for which we send status commands.
         current_position (np.ndarray): (6,1) Position of joints.
     """
-    def __init__(self, ):
+    def __init__(self, urdf_file=""):
+        super().__init__(urdf_file)
         self.hw_interface:HwInterface
         self.current_position = None
         # Threading objects
         self.position_thread = threading.Thread(None, self.update_joint_values, "Position thread")
+        self.position_thread.daemon = True
         self._pos_lock = threading.Lock()
-        self.stop_thread = False
-
-    def __del__(self):
-        self.stop()
+        self.stop_thread = threading.Event()
 
     def stop(self):
         pass
-        # if self.hw_interface.connected:
-        #     self.hw_interface.tx_rx("!")
     
     def bringup(self, **kwargs) -> int:
         self.hw_interface = HwInterface()
@@ -94,17 +91,8 @@ class HwManipulator(Manipulator):
             \nAs reccomended by GRBL documentation, this runs at 10Hz max, any faster yields diminshing returns.
         """
         print(f"Starting position thread with mutex {id(self.hw_interface._rw_lock)}")
-        while True:
-            if not self.hw_interface.connected or self.stop_thread: break
-            # retstr = self.hw_interface.tx_rx("?")
+        while self.hw_interface.connected and not self.stop_thread.is_set():
             retstr = self.hw_interface.rx_position()
-            # TODO, sometimes it seems that we get 2 ok messages for the one command...
-            # The current way we are doing this could be prone to RACE CONDITIONS, so we need to be smarter recieving msgs.
-            # print(f'retstr {retstr}')
-            # self.hw_interface.rx_flush()
-            # self.hw_interface.rx_flush()
-            # print("Flush " + self.hw_interface.rx_flush())
-            # print("Flush " + self.hw_interface.rx_flush())
             if "error" in retstr or "ALARM" in retstr:
                 raise RuntimeError("HWManipulator.update_joint_values() returned something other than 'ok'.\n"
                                f"potential fault msg: {retstr}")
