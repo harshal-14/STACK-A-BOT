@@ -8,6 +8,7 @@ This file contains the business logic for our stacking procedure.
 
 import argparse
 import numpy as np
+import time
 
 from .Components.SingletonRegistry import *
 from .Runtime_Handling import RoutineScheduler
@@ -23,20 +24,37 @@ def main(args:dict):
     initial_routines.append(ComponentBringup.ComponentBringup(args))
 
     """Add all routines that should run during operation"""
+    time.sleep(5)
     move_time = 5
+    back_rot = np.deg2rad(-160)
     # move for photo - pickup box
-    initial_routines.append(LinearInterpolationJS(np.array([[0], [np.deg2rad(-30)], [np.deg2rad(80)], [0], [0], [0]]), move_time))
+    initial_routines.append(LinearInterpolationJS(np.array([[0], [np.deg2rad(-30)], [np.deg2rad(88)], [0], [0], [0]]), move_time))
     # initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), 2.5))
     initial_routines.append(LinearInterpolationJS(np.array([[0], [np.deg2rad(35)], [np.deg2rad(-50)], [0], [0], [0]]), move_time))
     initial_routines.append(GrabBoxRoutine.GrabBoxRoutine(np.array([[0], [np.deg2rad(60)], [np.deg2rad(50)], [0], [0], [0]])))
-    initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [np.deg2rad(-180)], [0], [0]]), 5))
+    initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [back_rot], [0], [0]]), 6))
 
     # move for photo - place box
-    initial_routines.append(LinearInterpolationJS(np.array([[0], [np.deg2rad(35)], [np.deg2rad(-85)], [np.deg2rad(-180)], [0], [0]]), move_time))
+    initial_routines.append(LinearInterpolationJS(np.array([[0], [np.deg2rad(35)], [np.deg2rad(-88)], [back_rot], [0], [0]]), move_time))
     # initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [np.deg2rad(-180)], [0], [0]]), 5))
-    initial_routines.append(LinearInterpolationJS(np.array([[0], [np.deg2rad(-35)], [np.deg2rad(50)], [np.deg2rad(-180)], [0], [0]]), move_time))
-    initial_routines.append(PlaceBoxRoutine.PlaceBoxRoutine(drop_pose=np.array([[0], [np.deg2rad(-60)], [np.deg2rad(-60)], [np.deg2rad(-180)], [0], [0]]))) 
+    initial_routines.append(LinearInterpolationJS(np.array([[0], [np.deg2rad(-35)], [np.deg2rad(50)], [back_rot], [0], [0]]), move_time))
+    initial_routines.append(PlaceBoxRoutine.PlaceBoxRoutine(drop_pose=np.array([[0], [np.deg2rad(-70)], [np.deg2rad(-40)], [back_rot], [0], [0]]))) 
     initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), move_time))    
+
+    # # Number 2
+
+    # initial_routines.append(LinearInterpolationJS(np.array([[0], [np.deg2rad(-30)], [np.deg2rad(88)], [0], [0], [0]]), move_time))
+    # # initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), 2.5))
+    # initial_routines.append(LinearInterpolationJS(np.array([[0], [np.deg2rad(35)], [np.deg2rad(-50)], [0], [0], [0]]), move_time))
+    # initial_routines.append(GrabBoxRoutine.GrabBoxRoutine(np.array([[0], [np.deg2rad(60)], [np.deg2rad(50)], [0], [0], [0]])))
+    # initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [back_rot], [0], [0]]), 6))
+
+    # # move for photo - place box
+    # initial_routines.append(LinearInterpolationJS(np.array([[0], [np.deg2rad(35)], [np.deg2rad(-88)], [back_rot], [0], [0]]), move_time))
+    # # initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [np.deg2rad(-180)], [0], [0]]), 5))
+    # initial_routines.append(LinearInterpolationJS(np.array([[0], [np.deg2rad(-35)], [np.deg2rad(50)], [back_rot], [0], [0]]), move_time))
+    # initial_routines.append(PlaceBoxRoutine.PlaceBoxRoutine(drop_pose=np.array([[0], [np.deg2rad(-70)], [np.deg2rad(-40)], [back_rot], [0], [0]]))) 
+    # initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), move_time))   
 
     scheduler = RoutineScheduler.RoutineScheduler(initial_routines)
     while(scheduler.has_routines()):

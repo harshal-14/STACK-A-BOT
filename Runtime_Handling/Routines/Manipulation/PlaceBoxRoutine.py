@@ -35,7 +35,7 @@ class PlaceBoxRoutine(Routine):
 
         # Step 2: Wait to reach drop_pose or timeout
         elif self.step == 2:
-            if current_time - self.step_start_time > 7:
+            if current_time - self.step_start_time > 8:
                 self.step = 3
                 self.wait_start_time = current_time
 
@@ -43,7 +43,7 @@ class PlaceBoxRoutine(Routine):
         elif self.step == 3:
             if self.end_effector.get_status():
                 self.end_effector.set_mode(False)
-            if current_time - self.wait_start_time >= 3.0:
+            if current_time - self.wait_start_time >= 5.0:
                 self.manipulator.move_js(self.predrop_pose)
                 self.step = 4
                 self.step_start_time = current_time
