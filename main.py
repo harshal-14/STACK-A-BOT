@@ -1,62 +1,62 @@
 """
-Add actual docustring to this...
+Project Code for WPI Robotic Engineering Capstone Project '25.
+This file contains the business logic for our stacking procedure. 
+    Designed to work on either a physical THOR robot system or in a simulated pybullet environment. 
+    Routines (discrete actions taken by the system) are scheduled and executed FIFO.
+    Additional tasks handled in the background include safety monitoring and telemetry logging (WIP) 
 """
 
 import argparse
 import numpy as np
-import sys
-import os
+import time
 
-from .Components.SingletonRegistry import * # very important line
+from .Components.SingletonRegistry import *
 from .Runtime_Handling import RoutineScheduler
-from .Runtime_Handling.Routines.Manipulation import ComponentBringup, ComponentShutdown, LinearInterpolationJS, LinearInterpolationTS
-from .Runtime_Handling.Routines.Perception import EnvironmentSetup
-from .World.Geometry import Pose
-
-from scipy.spatial.transform import Rotation as R
+from .Runtime_Handling.Routines.Manipulation import ComponentBringup, GrabBoxRoutine, PlaceBoxRoutine
+from .Runtime_Handling.Routines.Manipulation.LinearInterpolationJS import LinearInterpolationJS
 
 def main(args:dict):
     """Setup components and environment"""
     initial_routines = []
     if args.mode == 'SIM':
+        from .Runtime_Handling.Routines.Perception import EnvironmentSetup
         initial_routines.append(EnvironmentSetup.EnvironmentSetup(args.URDF_path))
     initial_routines.append(ComponentBringup.ComponentBringup(args))
 
     """Add all routines that should run during operation"""
-    home_q = np.array([[0], [0], [-np.pi/2], [0], [-np.pi/4], [0]])
-    ee_p1  = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [0.3,  0.0, 0.2]) 
-    ee_p2 = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [0.0,  0.3, 0.2]) 
-    ee_p3 = Pose(R.from_euler('xyz', [0, np.pi, 0]).as_matrix(), [-0.3, 0.0, 0.2])
-    # movements in JS
-    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[-np.pi/2], [0], [0], [0], [0], [0]]), 2.5))
-    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [-np.pi/2], [0], [0], [0], [0]]), 2.5))
-    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [-np.pi/2], [0], [0], [0]]), 2.5))
-    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [0], [-np.pi/2], [0], [0]]), 2.5))
-    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [0], [0], [-np.pi/2], [0]]), 2.5))
-    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [-np.pi/2]]), 2.5))
-    initial_routines.append(LinearInterpolationJS.LinearInterpolationJS(home_q, 2.5))
-    # movements in TS
-    initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p1, 2))
-    initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p2, 2))
-    initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p3, 2))
-    initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p2, 2))
-    initial_routines.append(LinearInterpolationTS.LinearInterpolationTS(ee_p1, 2))
+    time.sleep(5)
+    move_time = 5
+    back_rot = np.deg2rad(-160)
+    # move for photo - pickup box
+    initial_routines.append(LinearInterpolationJS(np.array([[0], [np.deg2rad(-30)], [np.deg2rad(88)], [0], [0], [0]]), move_time))
+    # initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), 2.5))
+    initial_routines.append(LinearInterpolationJS(np.array([[0], [np.deg2rad(35)], [np.deg2rad(-50)], [0], [0], [0]]), move_time))
+    initial_routines.append(GrabBoxRoutine.GrabBoxRoutine(np.array([[0], [np.deg2rad(60)], [np.deg2rad(50)], [0], [0], [0]])))
+    initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [back_rot], [0], [0]]), 6))
+
+    # move for photo - place box
+    initial_routines.append(LinearInterpolationJS(np.array([[0], [np.deg2rad(35)], [np.deg2rad(-88)], [back_rot], [0], [0]]), move_time))
+    # initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [np.deg2rad(-180)], [0], [0]]), 5))
+    initial_routines.append(LinearInterpolationJS(np.array([[0], [np.deg2rad(-35)], [np.deg2rad(50)], [back_rot], [0], [0]]), move_time))
+    initial_routines.append(PlaceBoxRoutine.PlaceBoxRoutine(drop_pose=np.array([[0], [np.deg2rad(-70)], [np.deg2rad(-40)], [back_rot], [0], [0]]))) 
+    initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), move_time))    
+
+    # # Number 2
+
+    # initial_routines.append(LinearInterpolationJS(np.array([[0], [np.deg2rad(-30)], [np.deg2rad(88)], [0], [0], [0]]), move_time))
+    # # initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), 2.5))
+    # initial_routines.append(LinearInterpolationJS(np.array([[0], [np.deg2rad(35)], [np.deg2rad(-50)], [0], [0], [0]]), move_time))
+    # initial_routines.append(GrabBoxRoutine.GrabBoxRoutine(np.array([[0], [np.deg2rad(60)], [np.deg2rad(50)], [0], [0], [0]])))
+    # initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [back_rot], [0], [0]]), 6))
+
+    # # move for photo - place box
+    # initial_routines.append(LinearInterpolationJS(np.array([[0], [np.deg2rad(35)], [np.deg2rad(-88)], [back_rot], [0], [0]]), move_time))
+    # # initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [np.deg2rad(-180)], [0], [0]]), 5))
+    # initial_routines.append(LinearInterpolationJS(np.array([[0], [np.deg2rad(-35)], [np.deg2rad(50)], [back_rot], [0], [0]]), move_time))
+    # initial_routines.append(PlaceBoxRoutine.PlaceBoxRoutine(drop_pose=np.array([[0], [np.deg2rad(-70)], [np.deg2rad(-40)], [back_rot], [0], [0]]))) 
+    # initial_routines.append(LinearInterpolationJS(np.array([[0], [0], [0], [0], [0], [0]]), move_time))   
+
     scheduler = RoutineScheduler.RoutineScheduler(initial_routines)
-    while(scheduler.has_routines()):
-        scheduler.run()
-        # add any other runtime logic that program needs. 
-        # These could be things like the safety daemon, watchdog?, telemetry capture?
-    while(1):
-        pass
-    """After we have finished all planned Routines, we should move to a safe position, and disconnect."""
-    #TODO, write routine to save any data to disk (images, telemetry, point clouds...) 
-    #TODO: write routine to move robot to safe positon for shutdown
-    home_robot2 = LinearInterpolationJS.LinearInterpolationJS(home_q, 3)
-    # gracefully disconnects from components.
-    shutdown = ComponentShutdown.ComponentShutdown()
-    
-    scheduler.add_routine(home_robot2)
-    scheduler.add_routine(shutdown)
     while(scheduler.has_routines()):
         scheduler.run()
     exit(0)
@@ -85,3 +85,6 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
     main(args)
+
+
+# Investigate where the end effector ends up at the zero position.

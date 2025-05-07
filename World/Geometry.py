@@ -67,6 +67,9 @@ class Pose():
 
     def get_transform(self):
         return np.vstack((np.hstack((self.orientation.to_np(), self.point.to_np())), np.array([0,0,0,1])))
+    
+    def dist(self, other_pose): 
+        return np.linalg.norm(self.point.to_np(), other_pose)
 
     @classmethod
     def from_t(cls, t_matrix: np.ndarray) -> "Pose":

@@ -20,12 +20,19 @@ class SimManipulator(Manipulator):
     def __init__(self, urdf_file:str, meshes_dir:str):
         super().__init__(urdf_file)
         print("SimManipulator")
-        self.manipulator_ID = -1
+        self.manipulator_ID: int
         self.urdf_file = urdf_file
-        p.setAdditionalSearchPath(meshes_dir) # ensures that the mesh files are readable
+        self.meshes_dir = meshes_dir
         self.joint_ids = np.linspace(0,5,6, dtype=np.int32)
 
+    def __del__(self):
+        self.stop()
+
+    def stop(self):
+        p.setJointMotorControlArray(self.manipulator_ID, self.joint_ids, p.VELOCITY_CONTROL, np.zeros((6,1)))
+
     def bringup(self, **kwargs) -> int:
+        p.setAdditionalSearchPath(self.meshes_dir) # ensures that the mesh files are readable
         return self.connect(kwargs=kwargs)
 
     def connect(self, **kwargs) -> int:
@@ -55,9 +62,6 @@ class SimManipulator(Manipulator):
         """            
         ikpy_joints = self.IK_Solver(pose)
         self.move_js(ikpy_joints)
-    
-    def stop(self):
-        p.setJointMotorControlArray(self.manipulator_ID, self.joint_ids, p.VELOCITY_CONTROL, np.zeros((6,1)))
     
     def get_joint_values(self) -> np.ndarray:
         joint_states = p.getJointStates(self.manipulator_ID, self.joint_ids)

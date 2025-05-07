@@ -19,17 +19,6 @@ class LinearInterpolationJS(Routine):
             init_q (np.ndarray): joint angles captured during init() call
             init_time (float): EPOCH time in nano-seconds during init() call 
     """
-    def _init(self, prev_outputs):
-        return self.init(prev_outputs)
-        
-    def _loop(self):
-        return self.loop()
-            
-    def _end(self):
-        return self.end()
-            
-    def _handle_fault(self, prev_status=None):
-        return self.handle_fault(prev_status)
 
     def __init__(self, dst_q: np.ndarray, travel_time:float):
         self.dst_q = dst_q
@@ -56,15 +45,17 @@ class LinearInterpolationJS(Routine):
         if time_delta > 1.0:
             return Status(Condition.Success)
 
+        # print(f"Time Delta {time_delta}")
         q_diff = self.dst_q - self.init_q
         target_q = q_diff * time_delta + self.init_q
         self.manip_ref.move_js(target_q)
+        time.sleep(0.2)
 
         return Status(Condition.In_Progress)
     
     def end(self) -> tuple[Status, dict]:
         """Stops moving manipulator to end motion."""
-        self.manip_ref.stop()
+        time.sleep(5)
         return Status(Condition.Success), None
     
     def handle_fault(self, prev_status) -> tuple[Status, dict]:
