@@ -1,6 +1,6 @@
 from ..Routine import Routine
 from .. ..Components import Camera, EndEffector, Manipulator, SingletonRegistry, Component
-from .. ..Components.Hardware import HwCamera, HwEndEffector, HwManipulator
+from .. ..Components.Hardware import HwCamera, HwEndEffector, HwManipulator, HwInterface
 from .. ..Components.Sim import SimCamera, SimEndEffector, SimManipulator
 from .. .Status import Status, Condition
 class ComponentBringup(Routine):
@@ -28,22 +28,24 @@ class ComponentBringup(Routine):
             ee = SimEndEffector.SimEndEffector()
             manip = SimManipulator.SimManipulator(self.args.URDF_path+"thor_robot.urdf",self.args.meshes_dir)
         elif self.args.mode == 'HW':
-            cam = HwCamera.HwCamera() 
+            hw_interface = HwInterface.HwInterface()
+            # SingletonRegistry.update_singleton_registry(HwInterface.HwInterface, hw_interface)
+            # cam = HwCamera.HwCamera() 
             ee = HwEndEffector.HwEndEffector()
-            manip = HwManipulator.HwManipulator()
+            manip = HwManipulator.HwManipulator(self.args.URDF_path+"thor_robot.urdf")
         else:
             return Status(Condition.Fault, 
                           err_msg=f"Wrong mode given, expected ['HW', 'SIM'], given {self.mode}", 
                           err_type=ValueError)
         
-        self.comp_list = [cam, ee, manip]
+        self.comp_list = [ee, manip]
         # Edit Registry to have superclass point to concrete impl obj
-        SingletonRegistry.update_singleton_registry(Camera.Camera, cam)
+        # SingletonRegistry.update_singleton_registry(Camera.Camera, cam)
         SingletonRegistry.update_singleton_registry(EndEffector.EndEffector, ee)
         SingletonRegistry.update_singleton_registry(Manipulator.Manipulator, manip)
 
         # prevent new instantiations from occuring past this point without EXPLICIT knowledge
-        Component.Component.lock()
+        # Component.Component.lock()
         return Status(Condition.Success)
 
     def loop(self) -> Status:
